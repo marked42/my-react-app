@@ -5,21 +5,11 @@ import classNames from 'classnames';
 import './App.css'
 
 
+let drawing = false;
 export default function App() {
   const [mode, setMode] = useState(Mode.Line);
 
   const [shapes, setShapes] = useState<Shape[]>([
-    {
-      type: ShapeType.Line,
-      start: {
-        x: 100,
-        y: 100,
-      },
-      end: {
-        x: 200,
-        y: 200,
-      }
-    }
   ])
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,20 +28,91 @@ export default function App() {
       throw new Error('canvas 2d context not found!')
     }
 
-    shapes.forEach(shape => {
-      switch (shape.type) {
-        case ShapeType.Line:
-          context.beginPath();
-          context.moveTo(shape.start.x, shape.start.y);
-          context.lineTo(shape.end.x, shape.end.y);
-          context.stroke();
+    const paintCanvas = () => {
+      shapes.forEach(shape => {
+        switch (shape.type) {
+          case ShapeType.Line:
+            context.beginPath();
+            context.moveTo(shape.start.x, shape.start.y);
+            context.lineTo(shape.end.x, shape.end.y);
+            context.stroke();
+            break;
+          case ShapeType.Square:
+            context.strokeRect(shape.start.x, shape.start.y, shape.end.x - shape.start.x, shape.end.y - shape.start.y)
+            break
+        }
+      })
+    }
+    paintCanvas();
+
+    const handleMouseDown = (e: MouseEvent) => {
+      drawing = true;
+      let newShape
+      switch (mode) {
+        case Mode.Line:
+          newShape = {
+            type: ShapeType.Line,
+            start: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+            end: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+          }
           break;
-        case ShapeType.Square:
-          context.strokeRect(shape.start.x, shape.start.y, shape.end.x, shape.end.y)
-          break
+        case Mode.Square:
+          newShape = {
+            type: ShapeType.Square,
+            start: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+            end: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+          }
+          break;
       }
-    })
-  }, [shapes])
+      setShapes([
+        ...shapes,
+        newShape!,
+      ])
+      paintCanvas();
+    }
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!drawing) { return }
+      const lastShape = shapes[shapes.length - 1];
+
+      const newShape = {
+        ...lastShape,
+        end: {
+          x: e.clientX,
+          y: e.clientY,
+        }
+      }
+
+      setShapes([
+        ...shapes.slice(0, shapes.length - 1),
+        newShape,
+      ])
+    }
+    const handleMouseUp = (e: MouseEvent) => {
+      console.log('mouseup', e)
+      drawing = false
+    }
+
+    canvas.addEventListener('mousedown', handleMouseDown)
+    canvas.addEventListener('mousemove', handleMouseMove)
+    canvas.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown)
+      canvas.removeEventListener('mousemove', handleMouseMove)
+      canvas.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [shapes, mode])
 
   return (
     <Fragment>
