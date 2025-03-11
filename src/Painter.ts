@@ -4,6 +4,13 @@ export class Painter {
   constructor(private readonly context: CanvasRenderingContext2D) {}
 
   paint(shapes: Shape[]) {
+    this.context.clearRect(
+      0,
+      0,
+      this.context.canvas.width,
+      this.context.canvas.height
+    )
+
     shapes.forEach((shape) => {
       switch (shape.type) {
         case ShapeType.Line:
