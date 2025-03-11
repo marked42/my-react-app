@@ -1,17 +1,18 @@
 import { Fragment, useLayoutEffect, useRef, useState } from 'react'
-import { Shape, ShapeType } from './Shape';
+import { ShapeType } from './Shape';
 import { Mode } from './Mode';
 import classNames from 'classnames';
 import { Painter } from './Painter'
 import './App.css'
+import { Graph } from './Graph';
 
 
 let drawing = false;
+const graph = new Graph();
+
+
 export default function App() {
   const [mode, setMode] = useState(Mode.Line);
-
-  const [shapes, setShapes] = useState<Shape[]>([
-  ])
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -30,7 +31,11 @@ export default function App() {
     }
 
     const painter = new Painter(context);
-    painter.paint(shapes);
+    console.log('graph: ', graph)
+
+    const unsubscribe = graph.addChangeListener(() => {
+      painter.paint(graph.shapes);
+    })
 
     const handleMouseDown = (e: MouseEvent) => {
       drawing = true;
@@ -63,28 +68,20 @@ export default function App() {
           }
           break;
       }
-      setShapes([
-        ...shapes,
-        newShape!,
-      ])
-      painter.paint(shapes);
+      graph.addShape(newShape!)
     }
     const handleMouseMove = (e: MouseEvent) => {
       if (!drawing) { return }
-      const lastShape = shapes[shapes.length - 1];
 
       const newShape = {
-        ...lastShape,
+        ...graph.lastShape,
         end: {
           x: e.clientX,
           y: e.clientY,
         }
       }
 
-      setShapes([
-        ...shapes.slice(0, shapes.length - 1),
-        newShape,
-      ])
+      graph.updateLastShape(newShape)
     }
     const handleMouseUp = (e: MouseEvent) => {
       console.log('mouseup', e)
@@ -95,11 +92,12 @@ export default function App() {
     canvas.addEventListener('mousemove', handleMouseMove)
     canvas.addEventListener('mouseup', handleMouseUp)
     return () => {
+      unsubscribe();
       canvas.removeEventListener('mousedown', handleMouseDown)
       canvas.removeEventListener('mousemove', handleMouseMove)
       canvas.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [shapes, mode])
+  }, [mode])
 
   return (
     <Fragment>
