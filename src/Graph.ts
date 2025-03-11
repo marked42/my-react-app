@@ -1,6 +1,12 @@
 import { Shape } from './Shape'
 
+interface ChangeListener {
+  (): void
+}
+
 export class Graph {
+  private listeners: ChangeListener[] = []
+
   constructor(public shapes: Shape[] = []) {}
 
   addShape(newShape: Shape) {
@@ -13,6 +19,27 @@ export class Graph {
 
   setShapes(newShapes: Shape[]) {
     this.shapes = newShapes
+
+    this.triggerChangeListeners()
+  }
+
+  private triggerChangeListeners() {
+    this.listeners.forEach((listener) => {
+      listener()
+    })
+  }
+
+  private removeListener(listener: ChangeListener) {
+    this.listeners = this.listeners.filter((val) => val !== listener)
+  }
+
+  addChangeListener(listener: ChangeListener) {
+    this.listeners.push(listener)
+    console.log('listener: ', this.listeners)
+
+    return () => {
+      this.removeListener(listener)
+    }
   }
 
   get lastShape() {

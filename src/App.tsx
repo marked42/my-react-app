@@ -10,6 +10,7 @@ import { Graph } from './Graph';
 let drawing = false;
 const graph = new Graph();
 
+
 export default function App() {
   const [mode, setMode] = useState(Mode.Line);
 
@@ -30,8 +31,11 @@ export default function App() {
     }
 
     const painter = new Painter(context);
-    // initial paint
-    painter.paint(graph.shapes);
+    console.log('graph: ', graph)
+
+    const unsubscribe = graph.addChangeListener(() => {
+      painter.paint(graph.shapes);
+    })
 
     const handleMouseDown = (e: MouseEvent) => {
       drawing = true;
@@ -65,7 +69,6 @@ export default function App() {
           break;
       }
       graph.addShape(newShape!)
-      painter.paint(graph.shapes);
     }
     const handleMouseMove = (e: MouseEvent) => {
       if (!drawing) { return }
@@ -79,7 +82,6 @@ export default function App() {
       }
 
       graph.updateLastShape(newShape)
-      painter.paint(graph.shapes);
     }
     const handleMouseUp = (e: MouseEvent) => {
       console.log('mouseup', e)
@@ -90,6 +92,7 @@ export default function App() {
     canvas.addEventListener('mousemove', handleMouseMove)
     canvas.addEventListener('mouseup', handleMouseUp)
     return () => {
+      unsubscribe();
       canvas.removeEventListener('mousedown', handleMouseDown)
       canvas.removeEventListener('mousemove', handleMouseMove)
       canvas.removeEventListener('mouseup', handleMouseUp)
