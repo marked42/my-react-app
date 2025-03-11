@@ -2,6 +2,7 @@ import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { Shape, ShapeType } from './Shape';
 import { Mode } from './Mode';
 import classNames from 'classnames';
+import { Painter } from './Painter'
 import './App.css'
 
 
@@ -28,22 +29,8 @@ export default function App() {
       throw new Error('canvas 2d context not found!')
     }
 
-    const paintCanvas = () => {
-      shapes.forEach(shape => {
-        switch (shape.type) {
-          case ShapeType.Line:
-            context.beginPath();
-            context.moveTo(shape.start.x, shape.start.y);
-            context.lineTo(shape.end.x, shape.end.y);
-            context.stroke();
-            break;
-          case ShapeType.Square:
-            context.strokeRect(shape.start.x, shape.start.y, shape.end.x - shape.start.x, shape.end.y - shape.start.y)
-            break
-        }
-      })
-    }
-    paintCanvas();
+    const painter = new Painter(context);
+    painter.paint(shapes);
 
     const handleMouseDown = (e: MouseEvent) => {
       drawing = true;
@@ -80,7 +67,7 @@ export default function App() {
         ...shapes,
         newShape!,
       ])
-      paintCanvas();
+      painter.paint(shapes);
     }
     const handleMouseMove = (e: MouseEvent) => {
       if (!drawing) { return }

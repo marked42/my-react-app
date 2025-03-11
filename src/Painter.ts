@@ -1,0 +1,26 @@
+import { Shape, ShapeType } from './Shape'
+
+export class Painter {
+  constructor(private readonly context: CanvasRenderingContext2D) {}
+
+  paint(shapes: Shape[]) {
+    shapes.forEach((shape) => {
+      switch (shape.type) {
+        case ShapeType.Line:
+          this.context.beginPath()
+          this.context.moveTo(shape.start.x, shape.start.y)
+          this.context.lineTo(shape.end.x, shape.end.y)
+          this.context.stroke()
+          break
+        case ShapeType.Square:
+          this.context.strokeRect(
+            shape.start.x,
+            shape.start.y,
+            shape.end.x - shape.start.x,
+            shape.end.y - shape.start.y
+          )
+          break
+      }
+    })
+  }
+}
