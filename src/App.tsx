@@ -31,7 +31,7 @@ export default function App() {
     }
 
     const painter = new Painter(context);
-    console.log('graph: ', graph)
+    painter.paint(graph.shapes);
 
     const unsubscribe = graph.addChangeListener(() => {
       painter.paint(graph.shapes);
