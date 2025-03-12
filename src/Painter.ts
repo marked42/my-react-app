@@ -27,6 +27,9 @@ export class Painter {
             shape.end.y - shape.start.y
           )
           break
+        case ShapeType.Text:
+          this.context.strokeText(shape.text, shape.start.x, shape.start.y)
+          break
       }
     })
   }
