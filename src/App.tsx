@@ -1,34 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [show, setShow] = useState(false)
+  const textAreaRef = useRef<HTMLTextAreaElement>(null)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
 
+  const handleBlur = () => {
+    console.log('blur')
+    setTimeout(() => {
+      setShow(false)
+    })
+  }
+
+  const handleMouseDown = (e) => {
+    // if (show) {
+    //   return;
+    // }
+
+    // e.preventDefault();
+    // console.log('mousedown')
+    // console.log('setshow')
+    // setShow(true)
+  }
+  // FIXME: 使用click的case 会导致再次点击click的时候，首先触发blur，同步 setShow(false)重新渲染，然后触发handleClick
+  // 这个时候show已经是false了，所以会再次执行 setShow(true) 从而textarea 没有隐藏
+
+  const handleClick = (e) => {
+    if (show) {
+      return;
+    }
+    // e.preventDefault();
+    console.log('click')
+    setPosition({
+      x: e.nativeEvent.offsetX,
+      y: e.nativeEvent.offsetY,
+    })
+    setShow(true)
+  }
+  const handleFocus = () => {
+    console.log('focus')
+    // Promise.resolve().then(() => {
+    //   console.log('focus next tick')
+    // })
+  }
+
+  useEffect(() => {
+    if (show) {
+
+      textAreaRef.current?.focus()
+      // Promise.resolve().then(() => {
+      // console.log('call focus next tick')
+      // })
+    }
+  }, [show])
+
+  console.log('render', show)
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div
+      onClick={handleClick}
+      onMouseDown={handleMouseDown}
+      style={{
+        position: 'relative',
+        width: 400,
+        height: 400,
+        border: '1px solid #ccc'
+      }}>
+      <textarea
+        ref={textAreaRef}
+        style={{
+          display: show ? 'block' : 'none',
+          position: 'absolute',
+          left: position.x,
+          top: position.y,
+        }}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+      ></textarea>
+    </div>
   )
 }
 
