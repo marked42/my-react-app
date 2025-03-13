@@ -4,54 +4,37 @@ import './App.css'
 function App() {
   const [show, setShow] = useState(false)
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
 
   const handleBlur = () => {
     console.log('blur')
-    setTimeout(() => {
-      setShow(false)
-    })
+    setShow(false)
   }
 
   const handleMouseDown = (e) => {
-    // if (show) {
-    //   return;
-    // }
-
-    // e.preventDefault();
-    // console.log('mousedown')
-    // console.log('setshow')
-    // setShow(true)
-  }
-  // FIXME: 使用click的case 会导致再次点击click的时候，首先触发blur，同步 setShow(false)重新渲染，然后触发handleClick
-  // 这个时候show已经是false了，所以会再次执行 setShow(true) 从而textarea 没有隐藏
-
-  const handleClick = (e) => {
+    console.log('mousedown')
     if (show) {
       return;
     }
-    // e.preventDefault();
-    console.log('click')
-    setPosition({
-      x: e.nativeEvent.offsetX,
-      y: e.nativeEvent.offsetY,
-    })
+
+    // FIXME: 使用 mousedown 事件，点击首先触发mousedown时间，setShow(true)重新渲染，使得textarea显式出来，并获得焦点
+    // 但是mousedown事件的默认行为随后会导致textarea失去焦点，触发blur事件，handleBlur调用setShow(false)
+    // 重新渲染，隐藏textarea，所以表现为textarea没有显示出来。
+    // 使用 e.preventDefault() 避免textarea失去焦点
+    // e.preventDefault()
+    console.log('setshow')
     setShow(true)
+  }
+  const handleClick = () => {
+    console.log('click')
   }
   const handleFocus = () => {
     console.log('focus')
-    // Promise.resolve().then(() => {
-    //   console.log('focus next tick')
-    // })
   }
 
   useEffect(() => {
     if (show) {
 
       textAreaRef.current?.focus()
-      // Promise.resolve().then(() => {
-      // console.log('call focus next tick')
-      // })
     }
   }, [show])
 
@@ -59,9 +42,7 @@ function App() {
   return (
     <div
       onClick={handleClick}
-      onMouseDown={handleMouseDown}
-      style={{
-        position: 'relative',
+      onMouseDown={handleMouseDown} style={{
         width: 400,
         height: 400,
         border: '1px solid #ccc'
@@ -70,9 +51,6 @@ function App() {
         ref={textAreaRef}
         style={{
           display: show ? 'block' : 'none',
-          position: 'absolute',
-          left: position.x,
-          top: position.y,
         }}
         onBlur={handleBlur}
         onFocus={handleFocus}
