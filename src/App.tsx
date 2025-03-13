@@ -8,6 +8,7 @@ function App() {
 
   const handleBlur = () => {
     console.log('blur')
+    // FIXME: not working, 怎么使blur的触发晚于click
     setTimeout(() => {
       setShow(false)
     })
