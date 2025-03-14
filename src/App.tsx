@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { ShapeType } from './Shape';
 import { getTools, Tool } from './Tool';
 import classNames from 'classnames';
@@ -6,13 +6,10 @@ import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
 
-
-let drawing = false;
-const graph = new Graph();
-
-
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Line);
+  const drawing = useRef(false)
+  const graph = useRef(new Graph())
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -31,73 +28,68 @@ export default function App() {
     }
 
     const painter = new Painter(context);
-    painter.paint(graph.shapes);
+    painter.paint(graph.current.shapes);
 
-    const unsubscribe = graph.addChangeListener(() => {
-      painter.paint(graph.shapes);
+    const unsubscribe = graph.current.addChangeListener(() => {
+      painter.paint(graph.current.shapes);
     })
 
-    const handleMouseDown = (e: MouseEvent) => {
-      drawing = true;
-      let newShape
-      switch (currentTool) {
-        case Tool.Line:
-          newShape = {
-            type: ShapeType.Line,
-            start: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-            end: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-          }
-          break;
-        case Tool.Square:
-          newShape = {
-            type: ShapeType.Square,
-            start: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-            end: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-          }
-          break;
-      }
-      graph.addShape(newShape!)
-    }
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!drawing) { return }
-
-      const newShape = {
-        ...graph.lastShape,
-        end: {
-          x: e.clientX,
-          y: e.clientY,
-        }
-      }
-
-      graph.updateLastShape(newShape)
-    }
-    const handleMouseUp = (e: MouseEvent) => {
-      console.log('mouseup', e)
-      drawing = false
-    }
-
-    canvas.addEventListener('mousedown', handleMouseDown)
-    canvas.addEventListener('mousemove', handleMouseMove)
-    canvas.addEventListener('mouseup', handleMouseUp)
     return () => {
       unsubscribe();
-      canvas.removeEventListener('mousedown', handleMouseDown)
-      canvas.removeEventListener('mousemove', handleMouseMove)
-      canvas.removeEventListener('mouseup', handleMouseUp)
     }
   }, [currentTool])
+
+  const handleMouseDown: MouseEventHandler = (e) => {
+    drawing.current = true;
+    let newShape
+    switch (currentTool) {
+      case Tool.Line:
+        newShape = {
+          type: ShapeType.Line,
+          start: {
+            x: e.clientX,
+            y: e.clientY,
+          },
+          end: {
+            x: e.clientX,
+            y: e.clientY,
+          },
+        }
+        break;
+      case Tool.Square:
+        newShape = {
+          type: ShapeType.Square,
+          start: {
+            x: e.clientX,
+            y: e.clientY,
+          },
+          end: {
+            x: e.clientX,
+            y: e.clientY,
+          },
+        }
+        break;
+    }
+    graph.current.addShape(newShape!)
+  }
+
+  const handleMouseMove: MouseEventHandler = (e) => {
+    if (!drawing.current) { return }
+
+    const newShape = {
+      ...graph.current.lastShape,
+      end: {
+        x: e.clientX,
+        y: e.clientY,
+      }
+    }
+
+    graph.current.updateLastShape(newShape)
+  }
+  const handleMouseUp: MouseEventHandler = (e) => {
+    console.log('mouseup', e)
+    drawing.current = false
+  }
 
   return (
     <Fragment>
@@ -120,7 +112,13 @@ export default function App() {
           )
         })}
       </div>
-      <canvas ref={canvasRef} style={{ display: 'block' }} />
+      <canvas
+        ref={canvasRef}
+        style={{ display: 'block' }}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+      />
     </Fragment>
   )
 }
