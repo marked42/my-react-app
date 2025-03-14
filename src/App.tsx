@@ -1,6 +1,6 @@
 import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { ShapeType } from './Shape';
-import { Mode } from './Mode';
+import { getTools, Tool } from './Tool';
 import classNames from 'classnames';
 import { Painter } from './Painter'
 import './App.css'
@@ -12,7 +12,7 @@ const graph = new Graph();
 
 
 export default function App() {
-  const [mode, setMode] = useState(Mode.Line);
+  const [currentTool, setCurrentTool] = useState(Tool.Line);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -40,8 +40,8 @@ export default function App() {
     const handleMouseDown = (e: MouseEvent) => {
       drawing = true;
       let newShape
-      switch (mode) {
-        case Mode.Line:
+      switch (currentTool) {
+        case Tool.Line:
           newShape = {
             type: ShapeType.Line,
             start: {
@@ -54,7 +54,7 @@ export default function App() {
             },
           }
           break;
-        case Mode.Square:
+        case Tool.Square:
           newShape = {
             type: ShapeType.Square,
             start: {
@@ -97,7 +97,7 @@ export default function App() {
       canvas.removeEventListener('mousemove', handleMouseMove)
       canvas.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [mode])
+  }, [currentTool])
 
   return (
     <Fragment>
@@ -110,8 +110,15 @@ export default function App() {
         top: 0,
         gap: 10,
       }}>
-        <button className={classNames("tool-button", { 'active': mode === Mode.Line })} onClick={() => setMode(Mode.Line)}>line</button>
-        <button className={classNames("tool-button", { 'active': mode === Mode.Square })} onClick={() => setMode(Mode.Square)}>square</button>
+        {getTools().map(tool => {
+          return (
+            <button
+              key={tool.value}
+              className={classNames("tool-button", { 'active': tool.value === currentTool })}
+              onClick={() => setCurrentTool(tool.value)}
+            >{tool.label}</button>
+          )
+        })}
       </div>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
     </Fragment>
