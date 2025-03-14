@@ -47,59 +47,58 @@ export default function App() {
     if (isDrawingTool(currentTool)) {
       startDrawing();
     }
-    if (!isDrawing()) {
-      return;
-    }
 
-    let newShape
-    switch (currentTool) {
-      case Tool.Line:
-        newShape = {
-          type: ShapeType.Line,
-          start: {
-            x: e.clientX,
-            y: e.clientY,
-          },
-          end: {
-            x: e.clientX,
-            y: e.clientY,
-          },
-        }
-        break;
-      case Tool.Square:
-        newShape = {
-          type: ShapeType.Square,
-          start: {
-            x: e.clientX,
-            y: e.clientY,
-          },
-          end: {
-            x: e.clientX,
-            y: e.clientY,
-          },
-        }
-        break;
+    if (isDrawing()) {
+      let newShape
+      switch (currentTool) {
+        case Tool.Line:
+          newShape = {
+            type: ShapeType.Line,
+            start: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+            end: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+          }
+          break;
+        case Tool.Square:
+          newShape = {
+            type: ShapeType.Square,
+            start: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+            end: {
+              x: e.clientX,
+              y: e.clientY,
+            },
+          }
+          break;
+      }
+      graph.current.addShape(newShape!)
     }
-    graph.current.addShape(newShape!)
   }
 
   const handleMouseMove: MouseEventHandler = (e) => {
-    if (!isDrawing()) { return }
-
-    const newShape = {
-      ...graph.current.lastShape,
-      end: {
-        x: e.clientX,
-        y: e.clientY,
+    if (isDrawing()) {
+      const newShape = {
+        ...graph.current.lastShape,
+        end: {
+          x: e.clientX,
+          y: e.clientY,
+        }
       }
-    }
 
-    graph.current.updateLastShape(newShape)
+      graph.current.updateLastShape(newShape)
+    }
   }
   const handleMouseUp: MouseEventHandler = (e) => {
-    if (!isDrawing()) { return }
-
-    stopDrawing();
+    if (isDrawing()) {
+      stopDrawing();
+    }
   }
 
   return (
