@@ -2,6 +2,7 @@ export enum Tool {
   Selection,
   Line,
   Square,
+  Text,
 }
 
 export function getTools() {
@@ -17,6 +18,10 @@ export function getTools() {
     {
       label: 'square',
       value: Tool.Square,
+    },
+    {
+      label: 'text',
+      value: Tool.Text,
     },
   ]
 }

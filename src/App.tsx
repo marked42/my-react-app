@@ -1,4 +1,4 @@
-import { Fragment, MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
+import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { ShapeType } from './Shape';
 import { getTools, isDrawingTool, Tool } from './Tool';
 import classNames from 'classnames';
@@ -7,15 +7,56 @@ import './App.css'
 import { Graph } from './Graph';
 import { Action } from './Action';
 
+interface WritingData {
+  position: {
+    x: number,
+    y: number,
+  },
+  text: string;
+}
+const getDefaultWritingData = (): WritingData => {
+  return {
+    position: {
+      x: 0,
+      y: 0,
+    },
+    text: '',
+  }
+}
+
 export default function App() {
-  const [currentTool, setCurrentTool] = useState(Tool.Selection);
-  const action = useRef(Action.None)
+  const [currentTool, setCurrentTool] = useState(Tool.Text);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const graph = useRef(new Graph())
+
+  const action = useRef(Action.None)
+
   const isDrawing = () => action.current === Action.Drawing
   const startDrawing = () => action.current = Action.Drawing;
   const stopDrawing = () => action.current = Action.None;
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [writing, setWriting] = useState(getDefaultWritingData)
+  const writingBlurFlag = useRef(false)
+  const hasWritingBlurFlag = () => writingBlurFlag.current
+  const setWritingBlurFlag = () => writingBlurFlag.current = true
+  const clearWritingBlurFlag = () => writingBlurFlag.current = false;
+
+  const isWriting = () => action.current === Action.Writing;
+  const startWriting = (writing: WritingData) => {
+    action.current = Action.Writing;
+    setWriting(writing)
+  }
+  const commitWriting = () => {
+    graph.current.addShape({
+      type: ShapeType.Text,
+      ...writing,
+    })
+  }
+  const stopWriting = () => {
+    action.current = Action.None
+    setWriting(getDefaultWritingData())
+  }
+
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -101,8 +142,44 @@ export default function App() {
     }
   }
 
+  const handleClick: MouseEventHandler = (e) => {
+    if (currentTool === Tool.Text) {
+      console.log('click action: ', action.current)
+      if (hasWritingBlurFlag()) {
+        clearWritingBlurFlag();
+      } else {
+        startWriting({
+          // TODO: write current
+          text: '',
+          position: {
+            x: e.nativeEvent.offsetX,
+            y: e.nativeEvent.offsetY
+          }
+        });
+      }
+    }
+  }
+
+  const handleBlur = () => {
+    if (writing.text) {
+      console.log('blur')
+      commitWriting();
+      stopWriting();
+      setWritingBlurFlag();
+      // TODO: handleClick 时间异步触发，为什么晚于setTimeout
+      // setTimeout(() => {
+      //   stopWriting();
+      // })
+    }
+  }
+
   return (
-    <Fragment>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%'
+      }}>
       <div style={{
         position: 'absolute',
         display: 'flex',
@@ -128,7 +205,26 @@ export default function App() {
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
+        onClick={handleClick}
       />
-    </Fragment>
+      {isWriting() &&
+        <textarea
+          autoFocus
+          value={writing.text}
+          style={{
+            position: 'absolute',
+            left: writing.position.x,
+            top: writing.position.y,
+          }}
+          onChange={e => {
+            setWriting({
+              ...writing,
+              text: e.target.value,
+            })
+          }}
+          onBlur={handleBlur}
+        ></textarea>
+      }
+    </div>
   )
 }

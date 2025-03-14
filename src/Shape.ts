@@ -1,6 +1,7 @@
 export enum ShapeType {
   Line,
   Square,
+  Text,
 }
 
 interface Position {
@@ -20,4 +21,10 @@ interface Square {
   end: Position
 }
 
-export type Shape = Line | Square
+interface Text {
+  type: ShapeType.Text
+  position: Position
+  text: string
+}
+
+export type Shape = Line | Square | Text
