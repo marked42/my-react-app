@@ -1,15 +1,19 @@
 import { Fragment, MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { ShapeType } from './Shape';
-import { getTools, Tool } from './Tool';
+import { getTools, isDrawingTool, Tool } from './Tool';
 import classNames from 'classnames';
 import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
+import { Action } from './Action';
 
 export default function App() {
-  const [currentTool, setCurrentTool] = useState(Tool.Line);
-  const drawing = useRef(false)
+  const [currentTool, setCurrentTool] = useState(Tool.Selection);
+  const action = useRef(Action.None)
   const graph = useRef(new Graph())
+  const isDrawing = () => action.current === Action.Drawing
+  const startDrawing = () => action.current = Action.Drawing;
+  const stopDrawing = () => action.current = Action.None;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -40,7 +44,13 @@ export default function App() {
   }, [currentTool])
 
   const handleMouseDown: MouseEventHandler = (e) => {
-    drawing.current = true;
+    if (isDrawingTool(currentTool)) {
+      startDrawing();
+    }
+    if (!isDrawing()) {
+      return;
+    }
+
     let newShape
     switch (currentTool) {
       case Tool.Line:
@@ -74,7 +84,7 @@ export default function App() {
   }
 
   const handleMouseMove: MouseEventHandler = (e) => {
-    if (!drawing.current) { return }
+    if (!isDrawing()) { return }
 
     const newShape = {
       ...graph.current.lastShape,
@@ -87,8 +97,9 @@ export default function App() {
     graph.current.updateLastShape(newShape)
   }
   const handleMouseUp: MouseEventHandler = (e) => {
-    console.log('mouseup', e)
-    drawing.current = false
+    if (!isDrawing()) { return }
+
+    stopDrawing();
   }
 
   return (

@@ -35,7 +35,6 @@ export class Graph {
 
   addChangeListener(listener: ChangeListener) {
     this.listeners.push(listener)
-    console.log('listener: ', this.listeners)
 
     return () => {
       this.removeListener(listener)
