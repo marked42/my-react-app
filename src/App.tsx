@@ -6,24 +6,7 @@ import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
 import { Action } from './Action';
-import { TextAreaPadding } from './Writing'
-
-interface WritingData {
-  position: {
-    x: number,
-    y: number,
-  },
-  text: string;
-}
-const getDefaultWritingData = (): WritingData => {
-  return {
-    position: {
-      x: 0,
-      y: 0,
-    },
-    text: '',
-  }
-}
+import { TextAreaPadding, WritingData, getDefaultWritingData } from './Writing'
 
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Text);
