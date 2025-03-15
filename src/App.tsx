@@ -131,7 +131,6 @@ export default function App() {
 
   const handleClick: MouseEventHandler = (e) => {
     if (currentTool === Tool.Text) {
-      console.log('click action: ', action.current)
       if (hasWritingBlurFlag()) {
         clearWritingBlurFlag();
       } else {
@@ -149,15 +148,14 @@ export default function App() {
 
   const handleBlur = () => {
     if (writing.text) {
-      console.log('blur')
       commitWriting();
-      stopWriting();
-      setWritingBlurFlag();
-      // TODO: handleClick 时间异步触发，为什么晚于setTimeout
-      // setTimeout(() => {
-      //   stopWriting();
-      // })
     }
+    stopWriting();
+    setWritingBlurFlag();
+    // TODO: handleClick 时间异步触发，为什么晚于setTimeout
+    // setTimeout(() => {
+    //   stopWriting();
+    // })
   }
 
   return (
