@@ -1,10 +1,5 @@
-import {
-  isPositionOnLine,
-  isPositionOnSquare,
-  Point2D,
-  Shape,
-  ShapeType,
-} from './Shape'
+import { Shape, ShapeType } from './Shape'
+import { isPositionOnLine, isPositionOnSquare, Point2D } from './Geometry'
 
 interface ChangeListener {
   (): void
@@ -77,7 +72,7 @@ export class Graph {
     for (const shape of this.shapes) {
       switch (shape.type) {
         case ShapeType.Line:
-          if (isPositionOnLine(shape, position)) {
+          if (isPositionOnLine(position, shape.start, shape.end)) {
             return shape
           }
           break
