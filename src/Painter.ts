@@ -1,4 +1,5 @@
 import { Shape, ShapeType } from './Shape'
+import { TextAreaPadding } from './Writing'
 
 export class Painter {
   constructor(private readonly context: CanvasRenderingContext2D) {}
@@ -28,10 +29,10 @@ export class Painter {
           )
           break
         case ShapeType.Text:
-          this.context.strokeText(
+          this.context.fillText(
             shape.text,
-            shape.position.x,
-            shape.position.y
+            shape.position.x + TextAreaPadding,
+            shape.position.y + TextAreaPadding
           )
           break
       }

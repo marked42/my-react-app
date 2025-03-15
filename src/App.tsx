@@ -6,6 +6,7 @@ import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
 import { Action } from './Action';
+import { TextAreaPadding } from './Writing'
 
 interface WritingData {
   position: {
@@ -41,6 +42,7 @@ export default function App() {
   const setWritingBlurFlag = () => writingBlurFlag.current = true
   const clearWritingBlurFlag = () => writingBlurFlag.current = false;
 
+  const font = 'normal 24px sans-serif'
   const isWriting = () => action.current === Action.Writing;
   const startWriting = (writing: WritingData) => {
     action.current = Action.Writing;
@@ -73,6 +75,8 @@ export default function App() {
     }
 
     const painter = new Painter(context);
+    context.font = font;
+    context.textBaseline = 'top'
     painter.paint(graph.current.shapes);
 
     const unsubscribe = graph.current.addChangeListener(() => {
@@ -215,6 +219,13 @@ export default function App() {
             position: 'absolute',
             left: writing.position.x,
             top: writing.position.y,
+            border: 'none',
+            outline: '1px solid blue',
+            font,
+            padding: TextAreaPadding,
+            lineHeight: 1,
+            resize: 'none',
+            boxSizing: 'border-box'
           }}
           onChange={e => {
             setWriting({
