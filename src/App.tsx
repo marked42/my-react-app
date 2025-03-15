@@ -2,7 +2,7 @@ import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
-import { createLine, createSquare, createText, getMovement, copyMoveShape, Position, Shape } from './Shape';
+import { createLine, createSquare, createText, getMovement, copyMoveShape, Point2D, Shape } from './Shape';
 import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
@@ -43,8 +43,8 @@ export default function App() {
   }
 
   // moving
-  const movingData = useRef<{ element: Shape, id: number, start: Position }>(null)
-  const startMoving = (element: Shape, pos: Position) => {
+  const movingData = useRef<{ element: Shape, id: number, start: Point2D }>(null)
+  const startMoving = (element: Shape, pos: Point2D) => {
     movingData.current = {
       element: cloneDeep(element),
       id: element.id,
@@ -60,7 +60,7 @@ export default function App() {
     action.current = Action.None;
   }
 
-  const moveToPosition = (pos: Position) => {
+  const moveToPosition = (pos: Point2D) => {
     if (movingData.current) {
       const { element, id, start } = movingData.current;
       const movement = getMovement(start, pos)

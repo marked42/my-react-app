@@ -8,7 +8,7 @@ interface BaseShape {
   id: number
 }
 
-export interface Position {
+export interface Point2D {
   x: number
   y: number
 }
@@ -20,19 +20,19 @@ export interface Movement {
 
 interface Line extends BaseShape {
   type: ShapeType.Line
-  start: Position
-  end: Position
+  start: Point2D
+  end: Point2D
 }
 
 interface Square extends BaseShape {
   type: ShapeType.Square
-  start: Position
-  end: Position
+  start: Point2D
+  end: Point2D
 }
 
 interface Text extends BaseShape {
   type: ShapeType.Text
-  position: Position
+  position: Point2D
   text: string
 }
 
@@ -44,7 +44,7 @@ export function nextShapeId() {
   return id
 }
 
-export function createLine(start: Position, end: Position): Line {
+export function createLine(start: Point2D, end: Point2D): Line {
   return {
     id: nextShapeId(),
     type: ShapeType.Line,
@@ -53,7 +53,7 @@ export function createLine(start: Position, end: Position): Line {
   }
 }
 
-export function createSquare(start: Position, end: Position): Square {
+export function createSquare(start: Point2D, end: Point2D): Square {
   return {
     id: nextShapeId(),
     type: ShapeType.Square,
@@ -62,7 +62,7 @@ export function createSquare(start: Position, end: Position): Square {
   }
 }
 
-export function createText(position: Position, text: string): Text {
+export function createText(position: Point2D, text: string): Text {
   return {
     id: nextShapeId(),
     type: ShapeType.Text,
@@ -73,7 +73,7 @@ export function createText(position: Position, text: string): Text {
 
 export const EQUAL_DISTANCE_THRESHOLD = 1
 
-export function isPositionOnLine(line: Line, pos: Position) {
+export function isPositionOnLine(line: Line, pos: Point2D) {
   const lineLength = distance(line.start, line.end)
   const startPosLength = distance(line.start, pos)
   const endPosLength = distance(line.end, pos)
@@ -82,11 +82,7 @@ export function isPositionOnLine(line: Line, pos: Position) {
   return isCloseToZero(different)
 }
 
-export function isPositionOnSquare(
-  pos: Position,
-  start: Position,
-  end: Position
-) {
+export function isPositionOnSquare(pos: Point2D, start: Point2D, end: Point2D) {
   return isInRange(pos.x, start.x, end.x) && isInRange(pos.y, start.y, end.y)
 }
 
@@ -98,11 +94,11 @@ export function isCloseToZero(distance: number) {
   return distance <= EQUAL_DISTANCE_THRESHOLD
 }
 
-export function isNearPoint(pos1: Position, pos2: Position) {
+export function isNearPoint(pos1: Point2D, pos2: Point2D) {
   return isCloseToZero(distance(pos1, pos2))
 }
 
-export function distance(pos1: Position, pos2: Position) {
+export function distance(pos1: Point2D, pos2: Point2D) {
   return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2))
 }
 
@@ -129,13 +125,13 @@ export function copyMoveShape(shape: Shape, movement: Movement) {
   throw new Error('unimplemented copyMoveShape case')
 }
 
-export function copyMovePoint(point: Position, movement: Movement): Position {
+export function copyMovePoint(point: Point2D, movement: Movement): Point2D {
   return {
     x: point.x + movement.x,
     y: point.y + movement.y,
   }
 }
 
-export function getMovement(start: Position, end: Position): Movement {
+export function getMovement(start: Point2D, end: Point2D): Movement {
   return { x: end.x - start.x, y: end.y - start.y }
 }

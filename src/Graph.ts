@@ -1,7 +1,7 @@
 import {
   isPositionOnLine,
   isPositionOnSquare,
-  Position,
+  Point2D,
   Shape,
   ShapeType,
 } from './Shape'
@@ -73,7 +73,7 @@ export class Graph {
     this.triggerChangeListeners()
   }
 
-  getShapeAtPosition(position: Position) {
+  getShapeAtPosition(position: Point2D) {
     for (const shape of this.shapes) {
       switch (shape.type) {
         case ShapeType.Line:
