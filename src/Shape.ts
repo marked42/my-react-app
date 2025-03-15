@@ -106,52 +106,30 @@ export function distance(pos1: Position, pos2: Position) {
   return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2))
 }
 
-// move shape in place
-export function moveShape(shape: Shape, movement: Movement) {
+export function copyMoveShape(shape: Shape, movement: Movement) {
   switch (shape.type) {
     case ShapeType.Line:
     case ShapeType.Square: {
       const { start, end, ...rest } = shape
       return {
-        start: movePoint(start, movement),
-        end: movePoint(end, movement),
+        start: copyMovePoint(start, movement),
+        end: copyMovePoint(end, movement),
         ...rest,
       }
     }
     case ShapeType.Text: {
       const { position, ...rest } = shape
       return {
-        position: movePoint(position, movement),
+        position: copyMovePoint(position, movement),
         ...rest,
       }
     }
   }
 
-  throw new Error('unimplemented moveShape case')
+  throw new Error('unimplemented copyMoveShape case')
 }
 
-// export function moveShape(shape: Shape, movement: Movement) {
-//   switch (shape.type) {
-//     case ShapeType.Line:
-//     case ShapeType.Square: {
-//       console.log('before move', shape.start, shape.end, movement)
-//       shape.start = movePoint(shape.start, movement)
-//       shape.end = movePoint(shape.end, movement)
-//       console.log('after move', shape.start, shape.end, movement)
-//       return
-//     }
-//     case ShapeType.Text: {
-//       console.log('before position', shape.position, movement)
-//       shape.position = movePoint(shape.position, movement)
-//       console.log('after position', shape.position, movement)
-//       return
-//     }
-//   }
-
-//   throw new Error('unimplemented moveShape case')
-// }
-
-export function movePoint(point: Position, movement: Movement) {
+export function copyMovePoint(point: Position, movement: Movement): Position {
   return {
     x: point.x + movement.x,
     y: point.y + movement.y,

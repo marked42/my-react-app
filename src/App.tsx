@@ -2,7 +2,7 @@ import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
-import { createLine, createSquare, createText, getMovement, moveShape, Position, Shape } from './Shape';
+import { createLine, createSquare, createText, getMovement, copyMoveShape, Position, Shape } from './Shape';
 import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
@@ -65,7 +65,7 @@ export default function App() {
       const { element, id, start } = movingData.current;
       const movement = getMovement(start, pos)
 
-      const newShape = moveShape(element, movement)
+      const newShape = copyMoveShape(element, movement)
       graph.current.updateShape(id, newShape);
     }
   }
