@@ -7,3 +7,7 @@ TODOS:
 1. selection tool for line / rectangle, and then drag to adjust line and rectangle
 1. ADD flag controlling log output for easier DEBUGGING
 1. moving text
+1. moving should not work in text mode
+1. Geometry.js move Point2D class
+1. separate logic of different tools and actions
+1. rename Shape -> GraphElement
