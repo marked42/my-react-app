@@ -1,7 +1,8 @@
 import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
-import { ShapeType } from './Shape';
-import { getTools, isDrawingTool, Tool } from './Tool';
+import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
+import { getTools, isDrawingTool, Tool } from './Tool';
+import { createLine, createSquare, createText, getMovement, moveShape, Position, Shape } from './Shape';
 import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
@@ -15,10 +16,12 @@ export default function App() {
 
   const action = useRef(Action.None)
 
+  // drawing
   const isDrawing = () => action.current === Action.Drawing
   const startDrawing = () => action.current = Action.Drawing;
   const stopDrawing = () => action.current = Action.None;
 
+  // writing
   const [writing, setWriting] = useState(getDefaultWritingData)
   const writingBlurFlag = useRef(false)
   const hasWritingBlurFlag = () => writingBlurFlag.current
@@ -32,16 +35,40 @@ export default function App() {
     setWriting(writing)
   }
   const commitWriting = () => {
-    graph.current.addShape({
-      type: ShapeType.Text,
-      ...writing,
-    })
+    graph.current.addShape(createText(writing.position, writing.text))
   }
   const stopWriting = () => {
     action.current = Action.None
     setWriting(getDefaultWritingData())
   }
 
+  // moving
+  const movingData = useRef<{ element: Shape, id: number, start: Position }>(null)
+  const startMoving = (element: Shape, pos: Position) => {
+    movingData.current = {
+      element: cloneDeep(element),
+      id: element.id,
+      start: pos,
+    }
+    action.current = Action.Moving;
+  }
+  const isMoving = () => {
+    return action.current === Action.Moving
+  }
+  const stopMoving = () => {
+    movingData.current = null;
+    action.current = Action.None;
+  }
+
+  const moveToPosition = (pos: Position) => {
+    if (movingData.current) {
+      const { element, id, start } = movingData.current;
+      const movement = getMovement(start, pos)
+
+      const newShape = moveShape(element, movement)
+      graph.current.updateShape(id, newShape);
+    }
+  }
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -72,6 +99,12 @@ export default function App() {
   }, [currentTool])
 
   const handleMouseDown: MouseEventHandler = (e) => {
+    const hoveredElement = graph.current.getShapeAtPosition({ x: e.clientX, y: e.clientY })
+    if (hoveredElement) {
+      startMoving(hoveredElement, { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
+      return
+    }
+
     if (isDrawingTool(currentTool)) {
       startDrawing();
     }
@@ -80,30 +113,22 @@ export default function App() {
       let newShape
       switch (currentTool) {
         case Tool.Line:
-          newShape = {
-            type: ShapeType.Line,
-            start: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-            end: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-          }
+          newShape = createLine({
+            x: e.clientX,
+            y: e.clientY,
+          }, {
+            x: e.clientX,
+            y: e.clientY,
+          })
           break;
         case Tool.Square:
-          newShape = {
-            type: ShapeType.Square,
-            start: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-            end: {
-              x: e.clientX,
-              y: e.clientY,
-            },
-          }
+          newShape = createSquare({
+            x: e.clientX,
+            y: e.clientY,
+          }, {
+            x: e.clientX,
+            y: e.clientY,
+          })
           break;
       }
       graph.current.addShape(newShape!)
@@ -111,7 +136,19 @@ export default function App() {
   }
 
   const handleMouseMove: MouseEventHandler = (e) => {
+
+    if (isMoving()) {
+      moveToPosition({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
+    } else {
+      // when moving cursor remains same, calculate only when not moving
+      const hoveredElement = graph.current.getShapeAtPosition({ x: e.clientX, y: e.clientY })
+      const cursor = hoveredElement ? 'move' : 'default'
+      // console.log('move:  ', cursor)
+      e.target.style.cursor = cursor;
+    }
+
     if (isDrawing()) {
+      // TODO: wrap this
       const newShape = {
         ...graph.current.lastShape,
         end: {
@@ -124,6 +161,9 @@ export default function App() {
     }
   }
   const handleMouseUp: MouseEventHandler = (e) => {
+    if (isMoving()) {
+      stopMoving();
+    }
     if (isDrawing()) {
       stopDrawing();
     }

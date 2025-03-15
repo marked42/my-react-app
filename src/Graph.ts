@@ -1,4 +1,10 @@
-import { Shape } from './Shape'
+import {
+  isPositionOnLine,
+  isPositionOnSquare,
+  Position,
+  Shape,
+  ShapeType,
+} from './Shape'
 
 interface ChangeListener {
   (): void
@@ -47,5 +53,44 @@ export class Graph {
     }
 
     return this.shapes[this.shapes.length - 1]
+  }
+
+  findShape(id: number) {
+    return this.shapes.find((shape) => shape.id === id)
+  }
+
+  updateShape(id: number, newShape: Shape) {
+    const shape = this.findShape(id)
+    if (shape) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...rest } = newShape
+      Object.keys(rest).forEach((key) => {
+        // @ts-expect-error TODO:
+        shape[key] = newShape[key]
+      })
+    }
+
+    this.triggerChangeListeners()
+  }
+
+  getShapeAtPosition(position: Position) {
+    for (const shape of this.shapes) {
+      switch (shape.type) {
+        case ShapeType.Line:
+          if (isPositionOnLine(shape, position)) {
+            return shape
+          }
+          break
+        case ShapeType.Square:
+          if (isPositionOnSquare(position, shape.start, shape.end)) {
+            return shape
+          }
+          break
+        case ShapeType.Text:
+          break
+      }
+    }
+
+    return null
   }
 }
