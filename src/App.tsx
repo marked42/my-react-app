@@ -137,15 +137,16 @@ export default function App() {
   }
 
   const handleMouseMove: MouseEventHandler = (e) => {
-
-    if (isMoving()) {
-      moveToPosition({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
-    } else {
+    if (!(isMoving() || currentTool === Tool.Text)) {
       // when moving cursor remains same, calculate only when not moving
       const hoveredElement = graph.current.getElementAtPosition({ x: e.clientX, y: e.clientY })
       const cursor = hoveredElement ? 'move' : 'default'
       // console.log('move:  ', cursor)
       e.target.style.cursor = cursor;
+    }
+
+    if (isMoving()) {
+      moveToPosition({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
     }
 
     if (isDrawing()) {
@@ -171,7 +172,7 @@ export default function App() {
   }
 
   const handleClick: MouseEventHandler = (e) => {
-    if (currentTool === Tool.Text) {
+    if (currentTool === Tool.Text && !isWriting()) {
       if (hasWritingBlurFlag()) {
         clearWritingBlurFlag();
       } else {
