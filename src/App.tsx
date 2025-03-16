@@ -2,7 +2,7 @@ import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
-import { createLine, createSquare, createText, copyMoveElement, GraphElement } from './Shape';
+import { createLine, createSquare, createText, copyMoveElement, GraphElement } from './GraphElement';
 import { getMovement, Point2D } from './Geometry';
 import { Painter } from './Painter'
 import './App.css'

@@ -1,4 +1,4 @@
-import { GraphElement, GraphElementType } from './Shape'
+import { GraphElement, GraphElementType } from './GraphElement'
 import { isPositionOnLine, isPositionOnSquare, Point2D } from './Geometry'
 
 interface ChangeListener {

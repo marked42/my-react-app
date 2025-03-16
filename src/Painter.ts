@@ -1,4 +1,4 @@
-import { GraphElement, GraphElementType } from './Shape'
+import { GraphElement, GraphElementType } from './GraphElement'
 import { TextAreaPadding } from './Writing'
 
 export class Painter {
