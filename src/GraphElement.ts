@@ -1,4 +1,4 @@
-import { Movement, Point2D } from './Geometry'
+import { Offset, Point2D } from './Geometry'
 
 export enum GraphElementType {
   Line,
@@ -63,32 +63,25 @@ export function createText(position: Point2D, text: string): Text {
   }
 }
 
-export function copyMoveElement(element: GraphElement, movement: Movement) {
+export function copyMoveElement(element: GraphElement, offset: Offset) {
   switch (element.type) {
     case GraphElementType.Line:
     case GraphElementType.Square: {
       const { start, end, ...rest } = element
       return {
-        start: copyMovePoint(start, movement),
-        end: copyMovePoint(end, movement),
+        start: start.offsetBy(offset),
+        end: end.offsetBy(offset),
         ...rest,
       }
     }
     case GraphElementType.Text: {
       const { position, ...rest } = element
       return {
-        position: copyMovePoint(position, movement),
+        position: position.offsetBy(offset),
         ...rest,
       }
     }
   }
 
   throw new Error('unimplemented copyMoveElement case')
-}
-
-export function copyMovePoint(point: Point2D, movement: Movement): Point2D {
-  return {
-    x: point.x + movement.x,
-    y: point.y + movement.y,
-  }
 }

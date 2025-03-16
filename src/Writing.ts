@@ -9,11 +9,7 @@ export interface WritingData {
 
 export const getDefaultWritingData = (): WritingData => {
   return {
-    // TODO: refactor to Point2D.Origin
-    position: {
-      x: 0,
-      y: 0,
-    },
+    position: Point2D.Origin,
     text: '',
   }
 }

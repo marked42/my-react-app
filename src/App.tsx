@@ -3,7 +3,7 @@ import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
 import { createLine, createSquare, createText, copyMoveElement, GraphElement } from './GraphElement';
-import { getMovement, Point2D } from './Geometry';
+import { Point2D } from './Geometry';
 import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
@@ -64,9 +64,9 @@ export default function App() {
   const moveToPosition = (pos: Point2D) => {
     if (movingData.current) {
       const { element, id, start } = movingData.current;
-      const movement = getMovement(start, pos)
+      const offset = start.offsetTo(pos)
 
-      const newElement = copyMoveElement(element, movement)
+      const newElement = copyMoveElement(element, offset)
       graph.current.updateElement(id, newElement);
     }
   }
@@ -100,9 +100,9 @@ export default function App() {
   }, [currentTool])
 
   const handleMouseDown: MouseEventHandler = (e) => {
-    const hoveredElement = graph.current.getElementAtPosition({ x: e.clientX, y: e.clientY })
+    const hoveredElement = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
     if (hoveredElement) {
-      startMoving(hoveredElement, { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
+      startMoving(hoveredElement, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
       return
     }
 
@@ -114,22 +114,10 @@ export default function App() {
       let newElement
       switch (currentTool) {
         case Tool.Line:
-          newElement = createLine({
-            x: e.clientX,
-            y: e.clientY,
-          }, {
-            x: e.clientX,
-            y: e.clientY,
-          })
+          newElement = createLine(Point2D.of(e.clientX, e.clientY), Point2D.of(e.clientX, e.clientY))
           break;
         case Tool.Square:
-          newElement = createSquare({
-            x: e.clientX,
-            y: e.clientY,
-          }, {
-            x: e.clientX,
-            y: e.clientY,
-          })
+          newElement = createSquare(Point2D.of(e.clientX, e.clientY), Point2D.of(e.clientX, e.clientY))
           break;
       }
       graph.current.addElement(newElement!)
@@ -139,24 +127,21 @@ export default function App() {
   const handleMouseMove: MouseEventHandler = (e) => {
     if (!(isMoving() || currentTool === Tool.Text)) {
       // when moving cursor remains same, calculate only when not moving
-      const hoveredElement = graph.current.getElementAtPosition({ x: e.clientX, y: e.clientY })
+      const hoveredElement = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
       const cursor = hoveredElement ? 'move' : 'default'
       // console.log('move:  ', cursor)
       e.target.style.cursor = cursor;
     }
 
     if (isMoving()) {
-      moveToPosition({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
+      moveToPosition(Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
     }
 
     if (isDrawing()) {
       // TODO: wrap this
       const newElement = {
         ...graph.current.lastElement,
-        end: {
-          x: e.clientX,
-          y: e.clientY,
-        }
+        end: Point2D.of(e.clientX, e.clientY),
       }
 
       graph.current.updateLastElement(newElement)
@@ -179,10 +164,7 @@ export default function App() {
         startWriting({
           // TODO: write current
           text: '',
-          position: {
-            x: e.nativeEvent.offsetX,
-            y: e.nativeEvent.offsetY
-          }
+          position: Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
         });
       }
     }
