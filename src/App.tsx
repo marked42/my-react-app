@@ -2,13 +2,14 @@ import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
-import { createLine, createSquare, createText, copyMoveElement, GraphElement } from './GraphElement';
+import { createLine, createSquare, createText, GraphElement } from './GraphElement';
 import { Point2D } from './Geometry';
 import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
 import { Action } from './Action';
 import { TextAreaPadding, WritingData, getDefaultWritingData } from './Writing'
+import { copyMoveElement } from './Move';
 
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Text);
