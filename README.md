@@ -10,4 +10,3 @@ TODOS:
 1. moving should not work in text mode
 1. Geometry.js move Point2D class
 1. separate logic of different tools and actions
-1. rename Shape -> GraphElement

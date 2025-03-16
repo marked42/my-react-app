@@ -1,4 +1,4 @@
-import { Shape, ShapeType } from './Shape'
+import { GraphElement, GraphElementType } from './Shape'
 import { isPositionOnLine, isPositionOnSquare, Point2D } from './Geometry'
 
 interface ChangeListener {
@@ -8,18 +8,21 @@ interface ChangeListener {
 export class Graph {
   private listeners: ChangeListener[] = []
 
-  constructor(public shapes: Shape[] = []) {}
+  constructor(public elements: GraphElement[] = []) {}
 
-  addShape(newShape: Shape) {
-    this.setShapes([...this.shapes, newShape])
+  addElement(newElement: GraphElement) {
+    this.setElements([...this.elements, newElement])
   }
 
-  updateLastShape(newShape: Shape) {
-    this.setShapes([...this.shapes.slice(0, this.shapes.length - 1), newShape])
+  updateLastElement(newElement: GraphElement) {
+    this.setElements([
+      ...this.elements.slice(0, this.elements.length - 1),
+      newElement,
+    ])
   }
 
-  setShapes(newShapes: Shape[]) {
-    this.shapes = newShapes
+  setElements(newElements: GraphElement[]) {
+    this.elements = newElements
 
     this.triggerChangeListeners()
   }
@@ -42,46 +45,46 @@ export class Graph {
     }
   }
 
-  get lastShape() {
-    if (this.shapes.length === 0) {
+  get lastElement() {
+    if (this.elements.length === 0) {
       throw new Error('no last on empty graph')
     }
 
-    return this.shapes[this.shapes.length - 1]
+    return this.elements[this.elements.length - 1]
   }
 
-  findShape(id: number) {
-    return this.shapes.find((shape) => shape.id === id)
+  findElement(id: number) {
+    return this.elements.find((element) => element.id === id)
   }
 
-  updateShape(id: number, newShape: Shape) {
-    const shape = this.findShape(id)
-    if (shape) {
+  updateElement(id: number, newElement: GraphElement) {
+    const element = this.findElement(id)
+    if (element) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...rest } = newShape
+      const { id, ...rest } = newElement
       Object.keys(rest).forEach((key) => {
         // @ts-expect-error TODO:
-        shape[key] = newShape[key]
+        element[key] = newElement[key]
       })
     }
 
     this.triggerChangeListeners()
   }
 
-  getShapeAtPosition(position: Point2D) {
-    for (const shape of this.shapes) {
-      switch (shape.type) {
-        case ShapeType.Line:
-          if (isPositionOnLine(position, shape.start, shape.end)) {
-            return shape
+  getElementAtPosition(position: Point2D) {
+    for (const element of this.elements) {
+      switch (element.type) {
+        case GraphElementType.Line:
+          if (isPositionOnLine(position, element.start, element.end)) {
+            return element
           }
           break
-        case ShapeType.Square:
-          if (isPositionOnSquare(position, shape.start, shape.end)) {
-            return shape
+        case GraphElementType.Square:
+          if (isPositionOnSquare(position, element.start, element.end)) {
+            return element
           }
           break
-        case ShapeType.Text:
+        case GraphElementType.Text:
           break
       }
     }

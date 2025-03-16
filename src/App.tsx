@@ -2,7 +2,7 @@ import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
-import { createLine, createSquare, createText, copyMoveShape, Shape } from './Shape';
+import { createLine, createSquare, createText, copyMoveElement, GraphElement } from './Shape';
 import { getMovement, Point2D } from './Geometry';
 import { Painter } from './Painter'
 import './App.css'
@@ -36,7 +36,7 @@ export default function App() {
     setWriting(writing)
   }
   const commitWriting = () => {
-    graph.current.addShape(createText(writing.position, writing.text))
+    graph.current.addElement(createText(writing.position, writing.text))
   }
   const stopWriting = () => {
     action.current = Action.None
@@ -44,8 +44,8 @@ export default function App() {
   }
 
   // moving
-  const movingData = useRef<{ element: Shape, id: number, start: Point2D }>(null)
-  const startMoving = (element: Shape, pos: Point2D) => {
+  const movingData = useRef<{ element: GraphElement, id: number, start: Point2D }>(null)
+  const startMoving = (element: GraphElement, pos: Point2D) => {
     movingData.current = {
       element: cloneDeep(element),
       id: element.id,
@@ -66,8 +66,8 @@ export default function App() {
       const { element, id, start } = movingData.current;
       const movement = getMovement(start, pos)
 
-      const newShape = copyMoveShape(element, movement)
-      graph.current.updateShape(id, newShape);
+      const newElement = copyMoveElement(element, movement)
+      graph.current.updateElement(id, newElement);
     }
   }
 
@@ -88,10 +88,10 @@ export default function App() {
     const painter = new Painter(context);
     context.font = font;
     context.textBaseline = 'top'
-    painter.paint(graph.current.shapes);
+    painter.paint(graph.current.elements);
 
     const unsubscribe = graph.current.addChangeListener(() => {
-      painter.paint(graph.current.shapes);
+      painter.paint(graph.current.elements);
     })
 
     return () => {
@@ -100,7 +100,7 @@ export default function App() {
   }, [currentTool])
 
   const handleMouseDown: MouseEventHandler = (e) => {
-    const hoveredElement = graph.current.getShapeAtPosition({ x: e.clientX, y: e.clientY })
+    const hoveredElement = graph.current.getElementAtPosition({ x: e.clientX, y: e.clientY })
     if (hoveredElement) {
       startMoving(hoveredElement, { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
       return
@@ -111,10 +111,10 @@ export default function App() {
     }
 
     if (isDrawing()) {
-      let newShape
+      let newElement
       switch (currentTool) {
         case Tool.Line:
-          newShape = createLine({
+          newElement = createLine({
             x: e.clientX,
             y: e.clientY,
           }, {
@@ -123,7 +123,7 @@ export default function App() {
           })
           break;
         case Tool.Square:
-          newShape = createSquare({
+          newElement = createSquare({
             x: e.clientX,
             y: e.clientY,
           }, {
@@ -132,7 +132,7 @@ export default function App() {
           })
           break;
       }
-      graph.current.addShape(newShape!)
+      graph.current.addElement(newElement!)
     }
   }
 
@@ -142,7 +142,7 @@ export default function App() {
       moveToPosition({ x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })
     } else {
       // when moving cursor remains same, calculate only when not moving
-      const hoveredElement = graph.current.getShapeAtPosition({ x: e.clientX, y: e.clientY })
+      const hoveredElement = graph.current.getElementAtPosition({ x: e.clientX, y: e.clientY })
       const cursor = hoveredElement ? 'move' : 'default'
       // console.log('move:  ', cursor)
       e.target.style.cursor = cursor;
@@ -150,15 +150,15 @@ export default function App() {
 
     if (isDrawing()) {
       // TODO: wrap this
-      const newShape = {
-        ...graph.current.lastShape,
+      const newElement = {
+        ...graph.current.lastElement,
         end: {
           x: e.clientX,
           y: e.clientY,
         }
       }
 
-      graph.current.updateLastShape(newShape)
+      graph.current.updateLastElement(newElement)
     }
   }
   const handleMouseUp: MouseEventHandler = (e) => {
