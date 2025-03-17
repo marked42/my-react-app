@@ -78,13 +78,17 @@ export default function App() {
       throw new Error('canvas not found')
     }
 
-    canvas.width = document.body.clientWidth;
-    canvas.height = document.body.clientHeight;
-
     const context = canvas.getContext('2d')
     if (!context) {
       throw new Error('canvas 2d context not found!')
     }
+
+    const setCanvasSize = () => {
+      canvas.width = window.devicePixelRatio * canvas.clientWidth;
+      canvas.height = window.devicePixelRatio * canvas.clientHeight;
+    }
+    setCanvasSize();
+    context.scale(window.devicePixelRatio, window.devicePixelRatio)
 
     const painter = new Painter(context);
     context.font = font;
@@ -188,7 +192,7 @@ export default function App() {
       style={{
         position: 'relative',
         width: '100%',
-        height: '100%'
+        height: '100%',
       }}>
       <div style={{
         position: 'absolute',
@@ -211,7 +215,7 @@ export default function App() {
       </div>
       <canvas
         ref={canvasRef}
-        style={{ display: 'block' }}
+        style={{ display: 'block', width: '100%', height: '100%' }}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
