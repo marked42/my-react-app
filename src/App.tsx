@@ -231,6 +231,8 @@ export default function App() {
             top: writing.position.y,
             border: 'none',
             outline: '1px solid blue',
+            width: 'auto',
+            height: 'auto',
             font,
             padding: TextAreaPadding,
             lineHeight: 1,
