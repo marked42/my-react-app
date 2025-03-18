@@ -12,6 +12,7 @@ TODOS:
 1. text
 
    - [x] drag to move text
+   - [ ] use mousedown event for clicking to insert text
    - [ ] support selecting existing text on canvas and keep editing
    - [ ] text editing area size grows automatically by typing instead of fixed size
    - [ ] text font size change automatically to fit textarea when drag to resize
