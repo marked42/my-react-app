@@ -108,10 +108,12 @@ export default function App() {
   }, [currentTool])
 
   const handleMouseDown: MouseEventHandler = (e) => {
-    const hoveredElement = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
-    if (hoveredElement) {
-      startMoving(hoveredElement, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
-      return
+    if (currentTool === Tool.Selection) {
+      const hoveredElement = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
+      if (hoveredElement) {
+        startMoving(hoveredElement, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+        return
+      }
     }
 
     if (isDrawingTool(currentTool)) {
@@ -133,16 +135,15 @@ export default function App() {
   }
 
   const handleMouseMove: MouseEventHandler = (e) => {
-    if (!(isMoving() || currentTool === Tool.Text)) {
+    if (isMoving()) {
+      moveToPosition(Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+      // 只有选择模式，允许拖动
+    } else if (currentTool === Tool.Selection) {
       // when moving cursor remains same, calculate only when not moving
       const hoveredElement = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
       const cursor = hoveredElement ? 'move' : 'default'
       // console.log('move:  ', cursor)
       e.target.style.cursor = cursor;
-    }
-
-    if (isMoving()) {
-      moveToPosition(Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
     }
 
     if (isDrawing()) {
