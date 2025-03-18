@@ -11,6 +11,8 @@ import { Action } from './Action';
 import { TextAreaPadding, WritingData, getDefaultWritingData } from './Writing'
 import { copyMoveElement } from './Move';
 import { CANVAS_FONT } from './const';
+import { DragHandle, getCursorForHandle } from './DragHandle';
+import { copyResizeElement } from './Resize';
 
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Text);
@@ -44,10 +46,13 @@ export default function App() {
     setWriting(getDefaultWritingData())
   }
 
+  const hoveredInfo = useRef<{ element: GraphElement, handle: DragHandle }>(null);
+
   // moving
   const movingData = useRef<{ element: GraphElement, id: number, start: Point2D }>(null)
   const startMoving = (element: GraphElement, pos: Point2D) => {
     movingData.current = {
+      // should use copy of element to prevent being changed during consecutive resizing update
       element: cloneDeep(element),
       id: element.id,
       start: pos,
@@ -73,6 +78,31 @@ export default function App() {
   }
 
   // resize
+  const resizingData = useRef<{ element: GraphElement, handle: DragHandle, start: Point2D }>(null)
+  const isResizing = () => action.current === Action.Resizing;
+  const startResizing = (element: GraphElement, handle: DragHandle, pos: Point2D) => {
+    action.current = Action.Resizing;
+    resizingData.current = {
+      // should use copy of element to prevent being changed during consecutive resizing update
+      element: cloneDeep(element),
+      handle,
+      start: pos,
+    }
+  }
+  const stopResizing = () => {
+    action.current = Action.None;
+    resizingData.current = null
+  }
+  const resizeElement = (pos: Point2D) => {
+    if (resizingData.current) {
+      const { element, handle, start } = resizingData.current;
+      const offset = start.offsetTo(pos)
+
+      const newElement = copyResizeElement(element, handle, offset)
+
+      graph.current.updateElement(element.id, newElement);
+    }
+  }
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -109,9 +139,13 @@ export default function App() {
 
   const handleMouseDown: MouseEventHandler = (e) => {
     if (currentTool === Tool.Selection) {
-      const hoveredElement = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
-      if (hoveredElement) {
-        startMoving(hoveredElement, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+      if (hoveredInfo.current) {
+        const { element, handle } = hoveredInfo.current
+        if (handle === DragHandle.Body) {
+          startMoving(element, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+        } else {
+          startResizing(element, handle, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+        }
         return
       }
     }
@@ -135,15 +169,16 @@ export default function App() {
   }
 
   const handleMouseMove: MouseEventHandler = (e) => {
-    if (isMoving()) {
+    if (isResizing()) {
+      resizeElement(Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY));
+    } else if (isMoving()) {
       moveToPosition(Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
       // 只有选择模式，允许拖动
     } else if (currentTool === Tool.Selection) {
       // when moving cursor remains same, calculate only when not moving
-      const hoveredElement = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
-      const cursor = hoveredElement ? 'move' : 'default'
+      hoveredInfo.current = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
       // console.log('move:  ', cursor)
-      e.target.style.cursor = cursor;
+      e.target.style.cursor = getCursorForHandle(hoveredInfo.current?.handle);
     }
 
     if (isDrawing()) {
@@ -157,6 +192,9 @@ export default function App() {
     }
   }
   const handleMouseUp: MouseEventHandler = (e) => {
+    if (isResizing()) {
+      stopResizing();
+    }
     if (isMoving()) {
       stopMoving();
     }

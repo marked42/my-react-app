@@ -3,4 +3,5 @@ export enum Action {
   Drawing,
   Writing,
   Moving,
+  Resizing,
 }

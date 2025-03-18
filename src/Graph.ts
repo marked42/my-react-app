@@ -1,10 +1,12 @@
-import { GraphElement, GraphElementType } from './GraphElement'
+import { GraphElement, GraphElementType, Line } from './GraphElement'
 import {
+  isNearPoint,
   isPointOnText,
   isPositionOnLine,
   isPositionOnSquare,
   Point2D,
 } from './Geometry'
+import { DragHandle } from './DragHandle'
 
 interface ChangeListener {
   (): void
@@ -81,23 +83,69 @@ export class Graph {
     for (const element of this.elements) {
       switch (element.type) {
         case GraphElementType.Line:
-          if (isPositionOnLine(position, element.start, element.end)) {
-            return element
+          {
+            const hovered = this.getHoveredLine(position, element)
+            if (hovered) {
+              return hovered
+            }
           }
           break
         case GraphElementType.Square:
           if (isPositionOnSquare(position, element.start, element.end)) {
-            return element
+            return {
+              element,
+              handle: DragHandle.Body,
+            }
           }
           break
         case GraphElementType.Text:
           if (isPointOnText(position, element, this?.context)) {
-            return element
+            return {
+              element,
+              handle: DragHandle.Body,
+            }
           }
           break
       }
     }
 
     return null
+  }
+
+  getHoveredInfo(position: Point2D, element: GraphElement) {
+    switch (element.type) {
+      case GraphElementType.Line:
+        return this.getHoveredLine(position, element)
+      case GraphElementType.Square:
+        throw new Error('not implemented')
+      case GraphElementType.Text:
+        throw new Error('not implemented')
+    }
+  }
+
+  getHoveredLine(position: Point2D, element: Line) {
+    const onLine = isPositionOnLine(position, element.start, element.end, 2)
+    if (!onLine) {
+      return
+    }
+
+    if (isNearPoint(position, element.start)) {
+      return {
+        element,
+        handle: DragHandle.Start,
+      }
+    }
+
+    if (isNearPoint(position, element.end)) {
+      return {
+        element,
+        handle: DragHandle.End,
+      }
+    }
+
+    return {
+      element,
+      handle: DragHandle.Body,
+    }
   }
 }

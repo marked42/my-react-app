@@ -12,17 +12,25 @@ export function isNearPoint(pos1: Point2D, pos2: Point2D) {
 }
 
 const EQUAL_DISTANCE_THRESHOLD = 1
-export function isCloseToZero(distance: number) {
-  return distance <= EQUAL_DISTANCE_THRESHOLD
+export function isCloseToZero(
+  distance: number,
+  epsilon = EQUAL_DISTANCE_THRESHOLD
+) {
+  return distance <= epsilon
 }
 
-export function isPositionOnLine(pos: Point2D, start: Point2D, end: Point2D) {
+export function isPositionOnLine(
+  pos: Point2D,
+  start: Point2D,
+  end: Point2D,
+  epsilon = EQUAL_DISTANCE_THRESHOLD
+) {
   const lineLength = start.distance(end)
   const startPosLength = start.distance(pos)
   const endPosLength = end.distance(pos)
 
   const different = Math.abs(startPosLength + endPosLength - lineLength)
-  return isCloseToZero(different)
+  return isCloseToZero(different, epsilon)
 }
 
 export function isPositionOnSquare(pos: Point2D, start: Point2D, end: Point2D) {
