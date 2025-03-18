@@ -10,6 +10,7 @@ import { Graph } from './Graph';
 import { Action } from './Action';
 import { TextAreaPadding, WritingData, getDefaultWritingData } from './Writing'
 import { copyMoveElement } from './Move';
+import { CANVAS_FONT } from './const';
 
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Text);
@@ -30,7 +31,6 @@ export default function App() {
   const setWritingBlurFlag = () => writingBlurFlag.current = true
   const clearWritingBlurFlag = () => writingBlurFlag.current = false;
 
-  const font = 'normal 24px sans-serif'
   const isWriting = () => action.current === Action.Writing;
   const startWriting = (writing: WritingData) => {
     action.current = Action.Writing;
@@ -72,6 +72,8 @@ export default function App() {
     }
   }
 
+  // resize
+
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -82,6 +84,7 @@ export default function App() {
     if (!context) {
       throw new Error('canvas 2d context not found!')
     }
+    graph.current.context = context;
 
     const setCanvasSize = () => {
       canvas.width = window.devicePixelRatio * canvas.clientWidth;
@@ -91,7 +94,7 @@ export default function App() {
     context.scale(window.devicePixelRatio, window.devicePixelRatio)
 
     const painter = new Painter(context);
-    context.font = font;
+    context.font = CANVAS_FONT;
     context.textBaseline = 'top'
     painter.paint(graph.current.elements);
 
@@ -233,7 +236,7 @@ export default function App() {
             outline: '1px solid blue',
             width: 'auto',
             height: 'auto',
-            font,
+            font: CANVAS_FONT,
             padding: TextAreaPadding,
             lineHeight: 1,
             resize: 'none',

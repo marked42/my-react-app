@@ -1,4 +1,4 @@
-import { Offset, Point2D } from './Geometry'
+import { Point2D } from './Geometry'
 
 export enum GraphElementType {
   Line,
@@ -10,19 +10,19 @@ interface BaseGraphElement {
   id: number
 }
 
-interface Line extends BaseGraphElement {
+export interface Line extends BaseGraphElement {
   type: GraphElementType.Line
   start: Point2D
   end: Point2D
 }
 
-interface Square extends BaseGraphElement {
+export interface Square extends BaseGraphElement {
   type: GraphElementType.Square
   start: Point2D
   end: Point2D
 }
 
-interface Text extends BaseGraphElement {
+export interface Text extends BaseGraphElement {
   type: GraphElementType.Text
   position: Point2D
   text: string

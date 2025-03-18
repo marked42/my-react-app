@@ -11,7 +11,7 @@ TODOS:
 1. selection tool for line / rectangle, and then drag to adjust line and rectangle
 1. text
 
-   - [ ] drag to move text
+   - [x] drag to move text
    - [ ] support selecting existing text on canvas and keep editing
    - [ ] text editing area size grows automatically by typing instead of fixed size
    - [ ] text font size change automatically to fit textarea when drag to resize

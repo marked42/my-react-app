@@ -1,5 +1,10 @@
 import { GraphElement, GraphElementType } from './GraphElement'
-import { isPositionOnLine, isPositionOnSquare, Point2D } from './Geometry'
+import {
+  isPointOnText,
+  isPositionOnLine,
+  isPositionOnSquare,
+  Point2D,
+} from './Geometry'
 
 interface ChangeListener {
   (): void
@@ -7,6 +12,7 @@ interface ChangeListener {
 
 export class Graph {
   private listeners: ChangeListener[] = []
+  public context?: CanvasRenderingContext2D
 
   constructor(public elements: GraphElement[] = []) {}
 
@@ -85,6 +91,9 @@ export class Graph {
           }
           break
         case GraphElementType.Text:
+          if (isPointOnText(position, element, this?.context)) {
+            return element
+          }
           break
       }
     }
