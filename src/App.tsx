@@ -32,10 +32,6 @@ export default function App() {
   const hasWritingBlurFlag = () => writingBlurFlag.current
   const setWritingBlurFlag = () => writingBlurFlag.current = true
   const clearWritingBlurFlag = () => writingBlurFlag.current = false;
-  const fontStyle = {
-    fontFamily: 'sans-serif',
-    fontSize: 100,
-  }
 
   const isWriting = () => action.current === Action.Writing;
   const startWriting = (writing: WritingData) => {
