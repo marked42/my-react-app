@@ -32,6 +32,10 @@ export default function App() {
   const hasWritingBlurFlag = () => writingBlurFlag.current
   const setWritingBlurFlag = () => writingBlurFlag.current = true
   const clearWritingBlurFlag = () => writingBlurFlag.current = false;
+  const fontStyle = {
+    fontFamily: 'sans-serif',
+    fontSize: 100,
+  }
 
   const isWriting = () => action.current === Action.Writing;
   const startWriting = (writing: WritingData) => {
@@ -116,24 +120,40 @@ export default function App() {
     }
     graph.current.context = context;
 
-    const setCanvasSize = () => {
-      canvas.width = window.devicePixelRatio * canvas.clientWidth;
-      canvas.height = window.devicePixelRatio * canvas.clientHeight;
+    const setupContext = () => {
+      const { devicePixelRatio } = window
+      canvas.width = devicePixelRatio * canvas.clientWidth;
+      canvas.height = devicePixelRatio * canvas.clientHeight;
+      context.scale(devicePixelRatio, devicePixelRatio)
+      context.font = CANVAS_FONT;
+      context.textBaseline = 'top'
     }
-    setCanvasSize();
-    context.scale(window.devicePixelRatio, window.devicePixelRatio)
+    setupContext();
 
     const painter = new Painter(context);
-    context.font = CANVAS_FONT;
-    context.textBaseline = 'top'
-    painter.paint(graph.current.elements);
+
+    const paint = () => {
+      painter.paint(graph.current.elements);
+    }
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.target === canvas) {
+          setupContext();
+          paint()
+        }
+      }
+    })
 
     const unsubscribe = graph.current.addChangeListener(() => {
-      painter.paint(graph.current.elements);
+      paint();
     })
+    resizeObserver.observe(canvas)
 
     return () => {
       unsubscribe();
+      resizeObserver.unobserve(canvas)
+      resizeObserver.disconnect();
     }
   }, [])
 

@@ -1,6 +1,8 @@
 import { GraphElement, GraphElementType } from './GraphElement'
 import { TextAreaPadding } from './Writing'
 
+const TextPadding = 2
+
 export class Painter {
   constructor(private readonly context: CanvasRenderingContext2D) {}
 
