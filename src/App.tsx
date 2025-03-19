@@ -15,7 +15,7 @@ import { DragHandle, getCursorForHandle } from './DragHandle';
 import { copyResizeElement } from './Resize';
 
 export default function App() {
-  const [currentTool, setCurrentTool] = useState(Tool.Text);
+  const [currentTool, setCurrentTool] = useState(Tool.Line);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const graph = useRef(new Graph())
 
@@ -135,7 +135,7 @@ export default function App() {
     return () => {
       unsubscribe();
     }
-  }, [currentTool])
+  }, [])
 
   const handleMouseDown: MouseEventHandler = (e) => {
     if (currentTool === Tool.Selection) {
