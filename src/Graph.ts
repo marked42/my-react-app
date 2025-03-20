@@ -14,7 +14,6 @@ interface ChangeListener {
 
 export class Graph {
   private listeners: ChangeListener[] = []
-  public context?: CanvasRenderingContext2D
 
   constructor(public elements: GraphElement[] = []) {}
 
@@ -79,7 +78,7 @@ export class Graph {
     this.triggerChangeListeners()
   }
 
-  getElementAtPosition(position: Point2D) {
+  getElementAtPosition(position: Point2D, context: CanvasRenderingContext2D) {
     for (const element of this.elements) {
       switch (element.type) {
         case GraphElementType.Line:
@@ -99,7 +98,7 @@ export class Graph {
           }
           break
         case GraphElementType.Text:
-          if (isPointOnText(position, element, this?.context)) {
+          if (isPointOnText(position, element, context)) {
             return {
               element,
               handle: DragHandle.Body,

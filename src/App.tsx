@@ -1,4 +1,4 @@
-import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
+import { MouseEventHandler, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
@@ -17,6 +17,7 @@ import { copyResizeElement } from './Resize';
 
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Line);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const getCanvas = () => {
     if (!canvasRef.current) {
@@ -24,7 +25,43 @@ export default function App() {
     }
     return canvasRef.current
   }
+  const contextRef = useRef<CanvasRenderingContext2D>(null);
+  const getContext = useCallback(() => {
+    const canvas = getCanvas();
+    if (!contextRef.current) {
+      contextRef.current = canvas.getContext('2d')
+    }
+
+    return contextRef.current!
+  }, [])
+
+  const setupContext = useCallback(() => {
+    const canvas = getCanvas()
+    const context = getContext();
+
+    const { devicePixelRatio } = window
+    canvas.width = devicePixelRatio * canvas.clientWidth;
+    canvas.height = devicePixelRatio * canvas.clientHeight;
+    context.scale(devicePixelRatio, devicePixelRatio)
+    context.font = CANVAS_FONT;
+    context.textBaseline = 'top'
+  }, [getContext])
+
   const graph = useRef(new Graph())
+
+  const painter = useRef<Painter>(null)
+  const getPainter = useCallback(() => {
+    const context = getContext();
+    if (!painter.current) {
+      painter.current = new Painter(context);
+    }
+    return painter.current!
+  }, [getContext])
+
+  const paint = useCallback(() => {
+    const painter = getPainter()
+    painter.paint(graph.current.elements);
+  }, [getPainter])
 
   const action = useRef(Action.None)
 
@@ -112,34 +149,12 @@ export default function App() {
   }
 
   useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      throw new Error('canvas not found')
-    }
+    const canvas = getCanvas();
 
-    const context = canvas.getContext('2d')
-    if (!context) {
-      throw new Error('canvas 2d context not found!')
-    }
-    graph.current.context = context;
-
-    const setupContext = () => {
-      const { devicePixelRatio } = window
-      canvas.width = devicePixelRatio * canvas.clientWidth;
-      canvas.height = devicePixelRatio * canvas.clientHeight;
-      context.scale(devicePixelRatio, devicePixelRatio)
-      context.font = CANVAS_FONT;
-      context.textBaseline = 'top'
-    }
     setupContext();
+    paint();
 
-    const painter = new Painter(context);
-
-    const paint = () => {
-      painter.paint(graph.current.elements);
-    }
-
-    const resizeObserver = new ResizeObserver(entries => {
+    const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.target === canvas) {
           setupContext();
@@ -158,7 +173,7 @@ export default function App() {
       resizeObserver.unobserve(canvas)
       resizeObserver.disconnect();
     }
-  }, [])
+  }, [setupContext, paint])
 
   const handleMouseDown: MouseEventHandler = (e) => {
     if (currentTool === Tool.Selection) {
@@ -199,7 +214,7 @@ export default function App() {
       // 只有选择模式，允许拖动
     } else if (currentTool === Tool.Selection) {
       // when moving cursor remains same, calculate only when not moving
-      hoveredInfo.current = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY))
+      hoveredInfo.current = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY), getContext())
       // console.log('move:  ', cursor)
       e.target.style.cursor = getCursorForHandle(hoveredInfo.current?.handle);
     }
