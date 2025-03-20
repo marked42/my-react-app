@@ -1,4 +1,5 @@
 import { MouseEventHandler, useLayoutEffect, useRef, useState } from 'react'
+import dayjs from 'dayjs'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
@@ -17,6 +18,12 @@ import { copyResizeElement } from './Resize';
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Line);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const getCanvas = () => {
+    if (!canvasRef.current) {
+      throw new Error('canvas not found')
+    }
+    return canvasRef.current
+  }
   const graph = useRef(new Graph())
 
   const action = useRef(Action.None)
@@ -245,6 +252,18 @@ export default function App() {
     // })
   }
 
+  const download = () => {
+    const canvas = getCanvas();
+    const url = canvas.toDataURL('image/jpg', 1)
+
+    const link = document.createElement('a')
+    link.download = `image-${dayjs().format('YYYY-MM-DD')}.jpg`
+    link.href = url;
+    link.click();
+
+    link.remove();
+  }
+
   return (
     <div
       style={{
@@ -252,6 +271,15 @@ export default function App() {
         width: '100%',
         height: '100%',
       }}>
+      <div style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        // TODO: why need zIndex
+        zIndex: 1,
+      }}>
+        <button className="tool-button" onClick={download}>Download</button>
+      </div>
       <div style={{
         position: 'absolute',
         display: 'flex',
