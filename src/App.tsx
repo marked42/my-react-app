@@ -1,4 +1,4 @@
-import { MouseEventHandler, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { MouseEventHandler, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
@@ -14,6 +14,8 @@ import { copyMoveElement } from './Move';
 import { CANVAS_FONT } from './const';
 import { DragHandle, getCursorForHandle } from './DragHandle';
 import { copyResizeElement } from './Resize';
+import { MouseButton } from './MouseButton';
+import { usePressedKeys } from './usePressedKeys';
 
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Line);
@@ -148,6 +150,36 @@ export default function App() {
     }
   }
 
+  const [panOffset, setPanOffset] = useState({
+    x: 0,
+    y: 0,
+  })
+  const getCanvasMousePosition = (e: React.MouseEvent<Element, MouseEvent>) => {
+    return Point2D.of(e.nativeEvent.offsetX - panOffset.x, e.nativeEvent.offsetY - panOffset.y)
+  }
+
+  const isPanning = () => {
+    return action.current === Action.Panning
+  }
+  const startPanning = () => {
+    action.current = Action.Panning;
+    setCanvasCursor('grabbing')
+  }
+  const stopPanning = () => {
+    action.current = Action.None;
+    setCanvasCursor('default')
+  }
+
+  useLayoutEffect(() => {
+    // TODO:
+    // 1. has to clear translate
+    // 2. draw after panning in wrong position
+    setupContext();
+    const context = getContext()
+    context.translate(panOffset.x, panOffset.y);
+    paint();
+  }, [panOffset, getContext, paint, setupContext])
+
   useLayoutEffect(() => {
     const canvas = getCanvas();
 
@@ -175,14 +207,22 @@ export default function App() {
     }
   }, [setupContext, paint])
 
+  const pressedKeys = usePressedKeys()
   const handleMouseDown: MouseEventHandler = (e) => {
+    const canvasMousePosition = getCanvasMousePosition(e);
+    const isHandTool = currentTool === Tool.Hand;
+    if (isHandTool || e.button === MouseButton.Middle || pressedKeys.has(' ')) {
+      startPanning();
+      return;
+    }
+
     if (currentTool === Tool.Selection) {
       if (hoveredInfo.current) {
         const { element, handle } = hoveredInfo.current
         if (handle === DragHandle.Body) {
-          startMoving(element, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+          startMoving(element, canvasMousePosition.clone())
         } else {
-          startResizing(element, handle, Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+          startResizing(element, handle, getCanvasMousePosition(e))
         }
         return
       }
@@ -196,40 +236,70 @@ export default function App() {
       let newElement
       switch (currentTool) {
         case Tool.Line:
-          newElement = createLine(Point2D.of(e.clientX, e.clientY), Point2D.of(e.clientX, e.clientY))
+          newElement = createLine(canvasMousePosition.clone(), canvasMousePosition.clone())
           break;
         case Tool.Square:
-          newElement = createSquare(Point2D.of(e.clientX, e.clientY), Point2D.of(e.clientX, e.clientY))
+          newElement = createSquare(canvasMousePosition.clone(), canvasMousePosition.clone())
           break;
       }
       graph.current.addElement(newElement!)
     }
   }
 
+  useEffect(() => {
+    const handleMouseWheel = (e: WheelEvent) => {
+      // prevent two-finger touch move on track pad from trigger browser forward / backward
+      e.preventDefault();
+
+      setPanOffset(offset => ({
+        x: offset.x - Math.ceil(e.deltaX),
+        y: offset.y - Math.ceil(e.deltaY),
+      }))
+    }
+
+    const canvas = getCanvas();
+
+    canvas.addEventListener('wheel', handleMouseWheel);
+    return () => {
+      canvas.removeEventListener('wheel', handleMouseWheel)
+    }
+  }, [])
+
+  const setCanvasCursor = (cursor: string) => {
+    getCanvas().style.cursor = cursor
+  }
+
   const handleMouseMove: MouseEventHandler = (e) => {
-    if (isResizing()) {
-      resizeElement(Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY));
+    if (isPanning()) {
+      setPanOffset((offset) => ({
+        x: offset.x + e.movementX,
+        y: offset.y + e.movementY,
+      }))
+    } else if (isResizing()) {
+      resizeElement(getCanvasMousePosition(e));
     } else if (isMoving()) {
-      moveToPosition(Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY))
+      moveToPosition(getCanvasMousePosition(e))
       // 只有选择模式，允许拖动
     } else if (currentTool === Tool.Selection) {
       // when moving cursor remains same, calculate only when not moving
-      hoveredInfo.current = graph.current.getElementAtPosition(Point2D.of(e.clientX, e.clientY), getContext())
-      // console.log('move:  ', cursor)
-      e.target.style.cursor = getCursorForHandle(hoveredInfo.current?.handle);
+      hoveredInfo.current = graph.current.getElementAtPosition(getCanvasMousePosition(e), getContext())
+      setCanvasCursor(getCursorForHandle(hoveredInfo.current?.handle))
     }
 
     if (isDrawing()) {
       // TODO: wrap this
       const newElement = {
         ...graph.current.lastElement,
-        end: Point2D.of(e.clientX, e.clientY),
+        end: getCanvasMousePosition(e),
       }
 
       graph.current.updateLastElement(newElement)
     }
   }
   const handleMouseUp: MouseEventHandler = (e) => {
+    if (isPanning()) {
+      stopPanning();
+    }
     if (isResizing()) {
       stopResizing();
     }
@@ -249,7 +319,7 @@ export default function App() {
         startWriting({
           // TODO: write current
           text: '',
-          position: Point2D.of(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+          position: getCanvasMousePosition(e),
         });
       }
     }
@@ -295,6 +365,20 @@ export default function App() {
       }}>
         <button className="tool-button" onClick={download}>Download</button>
       </div>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 10,
+          right: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          zIndex: 10,
+        }}
+      >
+        <div>{`panning: (${panOffset.x}, ${panOffset.y})`}</div>
+        <button onClick={() => setPanOffset({ x: 0, y: 0 })}>reset</button>
+      </div>
       <div style={{
         position: 'absolute',
         display: 'flex',
@@ -328,8 +412,8 @@ export default function App() {
           value={writing.text}
           style={{
             position: 'absolute',
-            left: writing.position.x,
-            top: writing.position.y,
+            left: writing.position.x + panOffset.x,
+            top: writing.position.y + panOffset.y,
             border: 'none',
             outline: '1px solid blue',
             width: 'auto',

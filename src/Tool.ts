@@ -1,4 +1,5 @@
 export enum Tool {
+  Hand,
   Selection,
   Line,
   Square,
@@ -7,6 +8,10 @@ export enum Tool {
 
 export function getTools() {
   return [
+    {
+      label: 'hand',
+      value: Tool.Hand,
+    },
     {
       label: 'selection',
       value: Tool.Selection,

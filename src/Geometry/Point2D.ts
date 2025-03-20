@@ -27,4 +27,8 @@ export class Point2D {
   offsetBy(offset: Offset) {
     return Point2D.of(this.x + offset.x, this.y + offset.y)
   }
+
+  clone() {
+    return Point2D.of(this.x, this.y)
+  }
 }
