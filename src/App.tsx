@@ -17,8 +17,18 @@ import { copyResizeElement } from './Resize';
 import { MouseButton } from './MouseButton';
 import { usePressedKeys } from './usePressedKeys';
 
+const { devicePixelRatio } = window
+// const devicePixelRatio = 1
+
+const MAX_SCALE = 5
+const MIN_SCALE = 0.1
+
+function clampScale(value: number) {
+  return Math.max(Math.min(MAX_SCALE, value), MIN_SCALE);
+}
+
 export default function App() {
-  const [currentTool, setCurrentTool] = useState(Tool.Line);
+  const [currentTool, setCurrentTool] = useState(Tool.Square);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const getCanvas = () => {
@@ -36,18 +46,6 @@ export default function App() {
 
     return contextRef.current!
   }, [])
-
-  const setupContext = useCallback(() => {
-    const canvas = getCanvas()
-    const context = getContext();
-
-    const { devicePixelRatio } = window
-    canvas.width = devicePixelRatio * canvas.clientWidth;
-    canvas.height = devicePixelRatio * canvas.clientHeight;
-    context.scale(devicePixelRatio, devicePixelRatio)
-    context.font = CANVAS_FONT;
-    context.textBaseline = 'top'
-  }, [getContext])
 
   const graph = useRef(new Graph())
 
@@ -150,13 +148,11 @@ export default function App() {
     }
   }
 
+  // zoom in/out, pan
   const [panOffset, setPanOffset] = useState({
     x: 0,
     y: 0,
   })
-  const getCanvasMousePosition = (e: React.MouseEvent<Element, MouseEvent>) => {
-    return Point2D.of(e.nativeEvent.offsetX - panOffset.x, e.nativeEvent.offsetY - panOffset.y)
-  }
 
   const isPanning = () => {
     return action.current === Action.Panning
@@ -170,21 +166,58 @@ export default function App() {
     setCanvasCursor('default')
   }
 
-  useLayoutEffect(() => {
-    // TODO:
-    // 1. has to clear translate
-    // 2. draw after panning in wrong position
-    setupContext();
-    const context = getContext()
+  // zoom in / out
+  const [scale, setScale] = useState(1);
+
+  /**
+   * @{param} pos the scaled position
+   */
+  const getLogicalCoordinate = useCallback((pos: Point2D) => {
+    return Point2D.of(pos.x / scale - panOffset.x, pos.y / scale - panOffset.y)
+  }, [scale, panOffset])
+
+  /**
+  * 计算点击的像素位置对应的canvas坐标
+  */
+  const getLogicalCoordinateOfEvent = (e: React.MouseEvent<Element, MouseEvent>) => {
+    const x = e.nativeEvent.offsetX;
+    const y = e.nativeEvent.offsetY;
+    return getLogicalCoordinate(Point2D.of(x, y))
+  }
+
+  const setupContext = useCallback(() => {
+    const canvas = getCanvas()
+    const context = getContext();
+
+    canvas.width = devicePixelRatio * canvas.clientWidth;
+    canvas.height = devicePixelRatio * canvas.clientHeight;
+    // for pixel-perfect painting
+    context.scale(devicePixelRatio, devicePixelRatio)
+
+    // for zoom and pan
+    /**
+     * scale 和 offset对应画布先缩放再偏移的顺序
+     * a c e
+     * b d f
+     * 0 0 1
+     */
+    context.resetTransform();
+    context.scale(scale * devicePixelRatio, scale * devicePixelRatio)
     context.translate(panOffset.x, panOffset.y);
+    // context.setTransform(scale * devicePixelRatio, 0, 0, scale * devicePixelRatio, panOffset.x, panOffset.y)
+
+    context.font = CANVAS_FONT;
+    context.textBaseline = 'top'
+  }, [getContext, scale, panOffset])
+
+  useLayoutEffect(() => {
+    graph.current.addElement(createSquare(Point2D.of(100, 100), Point2D.of(200, 200)));
+    setupContext();
     paint();
-  }, [panOffset, getContext, paint, setupContext])
+  }, [paint, setupContext])
 
   useLayoutEffect(() => {
     const canvas = getCanvas();
-
-    setupContext();
-    paint();
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -209,7 +242,7 @@ export default function App() {
 
   const pressedKeys = usePressedKeys()
   const handleMouseDown: MouseEventHandler = (e) => {
-    const canvasMousePosition = getCanvasMousePosition(e);
+    const canvasMousePosition = getLogicalCoordinateOfEvent(e);
     const isHandTool = currentTool === Tool.Hand;
     if (isHandTool || e.button === MouseButton.Middle || pressedKeys.has(' ')) {
       startPanning();
@@ -222,7 +255,7 @@ export default function App() {
         if (handle === DragHandle.Body) {
           startMoving(element, canvasMousePosition.clone())
         } else {
-          startResizing(element, handle, getCanvasMousePosition(e))
+          startResizing(element, handle, getLogicalCoordinateOfEvent(e))
         }
         return
       }
@@ -246,24 +279,72 @@ export default function App() {
     }
   }
 
+  const getCanvasCenter = useCallback(() => {
+    const canvas = getCanvas();
+    return Point2D.of(canvas.clientWidth / 2, canvas.clientHeight / 2);
+  }, [])
+
+  const resetOriginalSize = () => {
+    setScale(1)
+    setPanOffset({ x: 0, y: 0 })
+  }
+  /**
+   * 缩放时要保证缩放中心所在的屏幕位置对应的逻辑像素坐标不变，调整offset，达到中心缩放的效果
+   *
+   * @param center {Point2D} 默认以画布为中心进行缩放
+   */
+  const setScaleAtCenter = useCallback((newScale: number, center: Point2D = getCanvasCenter()) => {
+    const clampedScale = clampScale(newScale);
+    setScale(clampedScale)
+
+    const { x: logicalX, y: logicalY } = getLogicalCoordinate(center)
+
+    /**
+     * 偏移量跟缩放比例有关系，所以比例变化后需要调整偏移量的值
+     */
+    setPanOffset({
+      x: center.x / clampedScale - logicalX,
+      y: center.y / clampedScale - logicalY,
+    })
+  }, [getCanvasCenter, getLogicalCoordinate])
+  const scaleDownAtCenter = (delta: number) => {
+    return setScaleAtCenter(scale - delta)
+  }
+  const scaleUpAtCenter = (delta: number) => {
+    return setScaleAtCenter(scale + delta)
+  }
+
   useEffect(() => {
-    const handleMouseWheel = (e: WheelEvent) => {
+    const handleWheel = (e: WheelEvent) => {
       // prevent two-finger touch move on track pad from trigger browser forward / backward
       e.preventDefault();
 
-      setPanOffset(offset => ({
-        x: offset.x - Math.ceil(e.deltaX),
-        y: offset.y - Math.ceil(e.deltaY),
-      }))
+      if (pressedKeys.has("Meta") || pressedKeys.has("Control")) {
+        // 归一化
+        const unit = e.deltaY < 0 ? 1 : -1
+
+        const SCALE_STEP = .1;
+        const newScale = scale + unit * SCALE_STEP;
+        // 以鼠标位置为中心缩放
+        // const ScaledCenter = Point2D.of(e.offsetX, e.offsetY)
+        // setScaleAtCenter(newScale, ScaledCenter)
+        setScaleAtCenter(newScale)
+      } else {
+        // triggered by touch pad
+        setPanOffset(offset => ({
+          x: offset.x - Math.ceil(e.deltaX) / scale,
+          y: offset.y - Math.ceil(e.deltaY) / scale,
+        }))
+      }
     }
 
     const canvas = getCanvas();
 
-    canvas.addEventListener('wheel', handleMouseWheel);
+    canvas.addEventListener('wheel', handleWheel);
     return () => {
-      canvas.removeEventListener('wheel', handleMouseWheel)
+      canvas.removeEventListener('wheel', handleWheel)
     }
-  }, [])
+  }, [scale, pressedKeys, panOffset, setScaleAtCenter])
 
   const setCanvasCursor = (cursor: string) => {
     getCanvas().style.cursor = cursor
@@ -272,17 +353,17 @@ export default function App() {
   const handleMouseMove: MouseEventHandler = (e) => {
     if (isPanning()) {
       setPanOffset((offset) => ({
-        x: offset.x + e.movementX,
-        y: offset.y + e.movementY,
+        x: offset.x + e.movementX / scale,
+        y: offset.y + e.movementY / scale,
       }))
     } else if (isResizing()) {
-      resizeElement(getCanvasMousePosition(e));
+      resizeElement(getLogicalCoordinateOfEvent(e));
     } else if (isMoving()) {
-      moveToPosition(getCanvasMousePosition(e))
+      moveToPosition(getLogicalCoordinateOfEvent(e))
       // 只有选择模式，允许拖动
     } else if (currentTool === Tool.Selection) {
       // when moving cursor remains same, calculate only when not moving
-      hoveredInfo.current = graph.current.getElementAtPosition(getCanvasMousePosition(e), getContext())
+      hoveredInfo.current = graph.current.getElementAtPosition(getLogicalCoordinateOfEvent(e), getContext())
       setCanvasCursor(getCursorForHandle(hoveredInfo.current?.handle))
     }
 
@@ -290,13 +371,13 @@ export default function App() {
       // TODO: wrap this
       const newElement = {
         ...graph.current.lastElement,
-        end: getCanvasMousePosition(e),
+        end: getLogicalCoordinateOfEvent(e),
       }
 
       graph.current.updateLastElement(newElement)
     }
   }
-  const handleMouseUp: MouseEventHandler = (e) => {
+  const handleMouseUp: MouseEventHandler = () => {
     if (isPanning()) {
       stopPanning();
     }
@@ -319,7 +400,7 @@ export default function App() {
         startWriting({
           // TODO: write current
           text: '',
-          position: getCanvasMousePosition(e),
+          position: getLogicalCoordinateOfEvent(e),
         });
       }
     }
@@ -377,7 +458,12 @@ export default function App() {
         }}
       >
         <div>{`panning: (${panOffset.x}, ${panOffset.y})`}</div>
-        <button onClick={() => setPanOffset({ x: 0, y: 0 })}>reset</button>
+        <div>
+          <button onClick={() => scaleDownAtCenter(0.1)}>-</button>
+          <input type="number" value={scale} onChange={e => setScaleAtCenter(Number(e.target.value))}></input>
+          <button onClick={() => scaleUpAtCenter(0.1)}>+</button>
+        </div>
+        <button onClick={resetOriginalSize}>reset</button>
       </div>
       <div style={{
         position: 'absolute',
@@ -400,7 +486,7 @@ export default function App() {
       </div>
       <canvas
         ref={canvasRef}
-        style={{ display: 'block', width: '100%', height: '100%' }}
+        style={{ display: 'block', width: 600, height: 600, border: '1px solid black' }}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
