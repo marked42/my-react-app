@@ -50,6 +50,9 @@ function App() {
   }, [elements])
 
   const [scale, setScale] = useState(1);
+  /**
+   * offset 代表经过放大缩小和偏移后，画布远点距离canvas左上角的位置偏移
+   */
   const [offset, setOffset] = useState({ x: 0, y: 0 })
 
   useLayoutEffect(() => {
@@ -59,42 +62,93 @@ function App() {
 
     contextRef.current = canvas.getContext('2d');
     const context = getContext();
-    context.scale(scale, scale)
-    context.translate(offset.x, offset.y);
+    /**
+     * scale 和 offset对应画布先缩放再偏移的顺序
+     */
+    // context.scale(scale, scale)
+    // context.translate(offset.x, offset.y);
+    /**
+     * a c e
+     * b d f
+     * 0 0 1
+     */
+    context.setTransform(scale, 0, 0, scale, offset.x, offset.y)
 
     paint();
   }, [scale, offset, paint])
-
-  const handleWheel: React.WheelEventHandler<HTMLCanvasElement> = (e) => {
-    const step = 0.1;
-    const unit = e.deltaY < 0 ? 1 : -1
-    console.log('unit: ', unit, e.deltaY)
-
-    // const gx = (e.nativeEvent.offsetX - offset.x) / scale
-    // const gy = (e.nativeEvent.offsetY - offset.y) / scale
-
-    // offset.x =
-    // offset.y = gy * newScale - e.nativeEvent.offsetY;
-    setScale((scale) => {
-      const newScale = scale + unit * step;
-
-      return Math.max(Math.min(5, newScale), 0.1);
-    })
-    // setOffset({
-    //   x: gx * newScale - e.nativeEvent.offsetX,
-    //   y: gy * newScale - e.nativeEvent.offsetY,
-    // })
-  }
 
   useLayoutEffect(() => {
     paint();
   }, [paint])
 
+  /**
+   * 计算点击的像素位置对应的canvas坐标
+   */
+  const getCanvasPosition = (x: number, y: number) => {
+    return {
+      x: (x - offset.x) / scale,
+      y: (y - offset.y) / scale,
+    }
+  }
+
+  const [scaleCenter, setScaleCenter] = useState('center');
+
+  const handleWheel: React.WheelEventHandler<HTMLCanvasElement> = (e) => {
+    e.preventDefault();
+
+    // 归一化
+    const unit = e.deltaY < 0 ? 1 : -1
+
+    // 以画布中心为中心线进行缩放
+    const CanvasCenter = { x: 300, y: 300 }
+    // 默认以原点为中心进行缩放，以任意位置为中心缩放
+    const ScaledCenter = scaleCenter === 'center' ? CanvasCenter : { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY, }
+    const SCALE_STEP = .1;
+    const MAX_SCALE = 5
+    const MIN_SCALE = 0.1
+
+    const newScale = Math.max(Math.min(MAX_SCALE, scale + unit * SCALE_STEP), MIN_SCALE);
+    setScale(newScale)
+
+    /**
+     * 偏移量跟缩放比例有关系，所以比例变化后需要调整偏移量的值
+     */
+    setOffset({
+      x: ScaledCenter.x - (ScaledCenter.x - offset.x) / scale * newScale,
+      y: ScaledCenter.y - (ScaledCenter.y - offset.y) / scale * newScale,
+    })
+  }
+
+  const panning = useRef(false);
+  const handleMouseDown: React.MouseEventHandler = (e) => {
+    if (e.button === 1) {
+      panning.current = true
+    }
+  }
+
+  const handleMouseMove: React.MouseEventHandler = (e) => {
+    if (panning.current) {
+      // const position = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY }
+      setOffset(offset => ({
+        x: offset.x + e.movementX,
+        y: offset.y + e.movementY,
+      }))
+    }
+  }
+
+  const handleMouseUp = () => {
+    panning.current = false
+  }
+
   return (
     <Fragment>
-      <div style={{ position: 'fixed', top: 10, right: 10 }}>
+      <div style={{ position: 'fixed', top: 10, left: 10, right: 10, display: 'flex', gap: 10, justifyContent: 'center', }}>
+        <select onChange={e => setScaleCenter(e.target.value)}>
+          <option value={'center'}>center</option>
+          <option value={'cursor'}>cursor</option>
+        </select>
         <div> {scale.toFixed(2)} </div>
-        <div> {`(${offset.x}, ${offset.y})`} </div>
+        <div> {`(${offset.x.toFixed(2)}, ${offset.y.toFixed(2)})`} </div>
       </div>
       <canvas
         ref={canvasRef}
@@ -103,6 +157,9 @@ function App() {
           height: 600,
           border: '1px solid black',
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
         onWheel={handleWheel}
       ></canvas>
     </Fragment>
