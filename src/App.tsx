@@ -422,7 +422,7 @@ export default function App() {
       </div>
       <canvas
         ref={canvasRef}
-        style={{ display: 'block', width: 600, height: 600, border: '1px solid black' }}
+        style={{ display: 'block', width: '100%', height: '100%' }}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
