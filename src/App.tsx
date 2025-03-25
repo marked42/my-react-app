@@ -16,16 +16,9 @@ import { DragHandle, getCursorForHandle } from './DragHandle';
 import { copyResizeElement } from './Resize';
 import { MouseButton } from './MouseButton';
 import { usePressedKeys } from './usePressedKeys';
+import { MAX_SCALE, MIN_SCALE, SCALE_STEP, useZoomPan } from './ZoomPan';
 
 const { devicePixelRatio } = window
-// const devicePixelRatio = 1
-
-const MAX_SCALE = 5
-const MIN_SCALE = 0.1
-
-function clampScale(value: number) {
-  return Math.max(Math.min(MAX_SCALE, value), MIN_SCALE);
-}
 
 export default function App() {
   const [currentTool, setCurrentTool] = useState(Tool.Square);
@@ -149,10 +142,17 @@ export default function App() {
   }
 
   // zoom in/out, pan
-  const [panOffset, setPanOffset] = useState({
-    x: 0,
-    y: 0,
-  })
+  const {
+    scale,
+    panOffset,
+    panByOffset,
+    getLogicalCoordinateOfEvent,
+    scaleDownAtCenter,
+    scaleUpAtCenter,
+    resetOriginalSize,
+    setScaleAtCenter,
+    scaleAtCenter,
+  } = useZoomPan(getCanvas)
 
   const isPanning = () => {
     return action.current === Action.Panning
@@ -166,25 +166,6 @@ export default function App() {
     setCanvasCursor('default')
   }
 
-  // zoom in / out
-  const [scale, setScale] = useState(1);
-
-  /**
-   * @{param} pos the scaled position
-   */
-  const getLogicalCoordinate = useCallback((pos: Point2D) => {
-    return Point2D.of(pos.x / scale - panOffset.x, pos.y / scale - panOffset.y)
-  }, [scale, panOffset])
-
-  /**
-  * 计算点击的像素位置对应的canvas坐标
-  */
-  const getLogicalCoordinateOfEvent = (e: React.MouseEvent<Element, MouseEvent>) => {
-    const x = e.nativeEvent.offsetX;
-    const y = e.nativeEvent.offsetY;
-    return getLogicalCoordinate(Point2D.of(x, y))
-  }
-
   const setupContext = useCallback(() => {
     const canvas = getCanvas()
     const context = getContext();
@@ -195,16 +176,9 @@ export default function App() {
     context.scale(devicePixelRatio, devicePixelRatio)
 
     // for zoom and pan
-    /**
-     * scale 和 offset对应画布先缩放再偏移的顺序
-     * a c e
-     * b d f
-     * 0 0 1
-     */
     context.resetTransform();
     context.scale(scale * devicePixelRatio, scale * devicePixelRatio)
     context.translate(panOffset.x, panOffset.y);
-    // context.setTransform(scale * devicePixelRatio, 0, 0, scale * devicePixelRatio, panOffset.x, panOffset.y)
 
     context.font = CANVAS_FONT;
     context.textBaseline = 'top'
@@ -279,41 +253,6 @@ export default function App() {
     }
   }
 
-  const getCanvasCenter = useCallback(() => {
-    const canvas = getCanvas();
-    return Point2D.of(canvas.clientWidth / 2, canvas.clientHeight / 2);
-  }, [])
-
-  const resetOriginalSize = () => {
-    setScale(1)
-    setPanOffset({ x: 0, y: 0 })
-  }
-  /**
-   * 缩放时要保证缩放中心所在的屏幕位置对应的逻辑像素坐标不变，调整offset，达到中心缩放的效果
-   *
-   * @param center {Point2D} 默认以画布为中心进行缩放
-   */
-  const setScaleAtCenter = useCallback((newScale: number, center: Point2D = getCanvasCenter()) => {
-    const clampedScale = clampScale(newScale);
-    setScale(clampedScale)
-
-    const { x: logicalX, y: logicalY } = getLogicalCoordinate(center)
-
-    /**
-     * 偏移量跟缩放比例有关系，所以比例变化后需要调整偏移量的值
-     */
-    setPanOffset({
-      x: center.x / clampedScale - logicalX,
-      y: center.y / clampedScale - logicalY,
-    })
-  }, [getCanvasCenter, getLogicalCoordinate])
-  const scaleDownAtCenter = (delta: number) => {
-    return setScaleAtCenter(scale - delta)
-  }
-  const scaleUpAtCenter = (delta: number) => {
-    return setScaleAtCenter(scale + delta)
-  }
-
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       // prevent two-finger touch move on track pad from trigger browser forward / backward
@@ -321,20 +260,13 @@ export default function App() {
 
       if (pressedKeys.has("Meta") || pressedKeys.has("Control")) {
         // 归一化
-        const unit = e.deltaY < 0 ? 1 : -1
-
-        const SCALE_STEP = .1;
-        const newScale = scale + unit * SCALE_STEP;
+        const sign = e.deltaY < 0 ? 1 : -1
         // 以鼠标位置为中心缩放
-        // const ScaledCenter = Point2D.of(e.offsetX, e.offsetY)
-        // setScaleAtCenter(newScale, ScaledCenter)
-        setScaleAtCenter(newScale)
+        const mousePosition = Point2D.of(e.offsetX, e.offsetY)
+        scaleAtCenter(sign, mousePosition)
       } else {
         // triggered by touch pad
-        setPanOffset(offset => ({
-          x: offset.x - Math.ceil(e.deltaX) / scale,
-          y: offset.y - Math.ceil(e.deltaY) / scale,
-        }))
+        panByOffset(Math.ceil(e.deltaX), Math.ceil(e.deltaY))
       }
     }
 
@@ -344,7 +276,7 @@ export default function App() {
     return () => {
       canvas.removeEventListener('wheel', handleWheel)
     }
-  }, [scale, pressedKeys, panOffset, setScaleAtCenter])
+  }, [pressedKeys, scaleAtCenter, panByOffset])
 
   const setCanvasCursor = (cursor: string) => {
     getCanvas().style.cursor = cursor
@@ -352,10 +284,7 @@ export default function App() {
 
   const handleMouseMove: MouseEventHandler = (e) => {
     if (isPanning()) {
-      setPanOffset((offset) => ({
-        x: offset.x + e.movementX / scale,
-        y: offset.y + e.movementY / scale,
-      }))
+      panByOffset(e.movementX, e.movementY);
     } else if (isResizing()) {
       resizeElement(getLogicalCoordinateOfEvent(e));
     } else if (isMoving()) {
@@ -459,9 +388,16 @@ export default function App() {
       >
         <div>{`panning: (${panOffset.x}, ${panOffset.y})`}</div>
         <div>
-          <button onClick={() => scaleDownAtCenter(0.1)}>-</button>
-          <input type="number" value={scale} onChange={e => setScaleAtCenter(Number(e.target.value))}></input>
-          <button onClick={() => scaleUpAtCenter(0.1)}>+</button>
+          <button onClick={() => scaleDownAtCenter()}>-</button>
+          <input
+            type="number"
+            min={MIN_SCALE}
+            max={MAX_SCALE}
+            step={SCALE_STEP}
+            value={scale}
+            onChange={e => setScaleAtCenter(Number(e.target.value))}
+          ></input>
+          <button onClick={() => scaleUpAtCenter()}>+</button>
         </div>
         <button onClick={resetOriginalSize}>reset</button>
       </div>

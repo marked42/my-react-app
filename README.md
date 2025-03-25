@@ -52,7 +52,7 @@ several ways to trigger panning
 2. use hand tool, click mouse left button and move to pan
 3. press down and hold space key then move mouse to pan
 4. scroll mouse middle button to pan (corresponding to wheel event)
-5. two-finger touch-move on trackpad to pan (corresponding to wheel event)
+5. two-finger touch-move on track pad to pan (corresponding to wheel event)
 
 ## Zoom in / out
 
