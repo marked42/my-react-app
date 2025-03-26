@@ -12,6 +12,13 @@ export function copyMoveElement(element: GraphElement, offset: Offset) {
         ...rest,
       }
     }
+    case GraphElementType.Freehand: {
+      const { points, ...rest } = element
+      return {
+        points: points.map((point) => point.offsetBy(offset)),
+        ...rest,
+      }
+    }
     case GraphElementType.Text: {
       const { position, ...rest } = element
       return {

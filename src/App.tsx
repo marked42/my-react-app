@@ -3,8 +3,8 @@ import dayjs from 'dayjs'
 import { cloneDeep } from 'lodash'
 import classNames from 'classnames';
 import { getTools, isDrawingTool, Tool } from './Tool';
-import { createLine, createSquare, createText, GraphElement } from './GraphElement';
-import { Point2D } from './Geometry';
+import { createFreehand, createLine, createSquare, createText, GraphElement, GraphElementType } from './GraphElement';
+import { Offset, Point2D } from './Geometry';
 import { Painter } from './Painter'
 import './App.css'
 import { Graph } from './Graph';
@@ -216,6 +216,7 @@ export default function App() {
 
   const pressedKeys = usePressedKeys()
   const handleMouseDown: MouseEventHandler = (e) => {
+    // TODO: 把 getLogicalCoordinateOfEvent 封装到 canvas中，从事件中直接拿到逻辑像素位置，避免重复调用
     const canvasMousePosition = getLogicalCoordinateOfEvent(e);
     const isHandTool = currentTool === Tool.Hand;
     if (isHandTool || e.button === MouseButton.Middle || pressedKeys.has(' ')) {
@@ -247,6 +248,9 @@ export default function App() {
           break;
         case Tool.Square:
           newElement = createSquare(canvasMousePosition.clone(), canvasMousePosition.clone())
+          break;
+        case Tool.Freehand:
+          newElement = createFreehand([canvasMousePosition.clone()])
           break;
       }
       graph.current.addElement(newElement!)
@@ -297,13 +301,23 @@ export default function App() {
     }
 
     if (isDrawing()) {
-      // TODO: wrap this
-      const newElement = {
-        ...graph.current.lastElement,
-        end: getLogicalCoordinateOfEvent(e),
-      }
+      if (currentTool === Tool.Freehand) {
+        const lastElement = graph.current.lastElement
+        if (lastElement.type === GraphElementType.Freehand) {
+          const point = getLogicalCoordinateOfEvent(e)
+          lastElement.points.push(point)
+          console.log('new points:', lastElement.points)
+          graph.current.triggerChangeListeners();
+        }
+      } else {
+        // TODO: wrap this
+        const newElement = {
+          ...graph.current.lastElement,
+          end: getLogicalCoordinateOfEvent(e),
+        }
 
-      graph.current.updateLastElement(newElement)
+        graph.current.updateLastElement(newElement)
+      }
     }
   }
   const handleMouseUp: MouseEventHandler = () => {

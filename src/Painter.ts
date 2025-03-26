@@ -1,5 +1,10 @@
-import { GraphElement, GraphElementType } from './GraphElement'
+import {
+  GraphElement,
+  GraphElementType,
+  getSvgPathFromStroke,
+} from './GraphElement'
 import { TextAreaPadding } from './Writing'
+import { getStroke } from 'perfect-freehand'
 
 export class Painter {
   constructor(private readonly context: CanvasRenderingContext2D) {}
@@ -35,6 +40,14 @@ export class Painter {
             element.position.y + TextAreaPadding
           )
           break
+        case GraphElementType.Freehand: {
+          {
+            const stroke = getStroke(element.points.map((p) => [p.x, p.y, 0]))
+            const path = getSvgPathFromStroke(stroke)
+            this.context.stroke(new Path2D(path))
+            break
+          }
+        }
       }
     })
   }
